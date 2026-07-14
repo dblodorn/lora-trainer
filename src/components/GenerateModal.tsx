@@ -4,14 +4,12 @@ import { trpc } from "@/utils/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useAuthModal } from "./AuthModalProvider";
 import GeneratedImageGrid from "./GeneratedImageGrid";
-
-const LORA_SCALE_PRESETS = [
-  { label: "chill", value: "1.5" },
-  { label: "spicy", value: "2" },
-  { label: "crunchy", value: "2.5" },
-  { label: "fried", value: "3.3" },
-  { label: "dead", value: "4" },
-] as const;
+import {
+  LORA_SCALE_PRESETS,
+  DEFAULT_LORA_SCALE,
+  LORA_SCALE_VALUES,
+  type LoraScale,
+} from "@/lib/lora-scale";
 
 interface GenerateModalProps {
   active: boolean;
@@ -31,7 +29,7 @@ export default function GenerateModal({
     { id: string; imageUrl: string; prompt: string; createdAt: string }[]
   >([]);
   const [nsfwWarning, setNsfwWarning] = useState(false);
-  const [loraScale, setLoraScale] = useState<"1.5" | "2" | "2.5" | "3.3" | "4">("1.5");
+  const [loraScale, setLoraScale] = useState<LoraScale>(DEFAULT_LORA_SCALE);
 
   const { data: session } = authClient.useSession();
   const { openAuthModal } = useAuthModal();
@@ -65,7 +63,7 @@ export default function GenerateModal({
     if (active) {
       setGeneratedImages([]);
       setNsfwWarning(false);
-      setLoraScale("1.5");
+      setLoraScale(DEFAULT_LORA_SCALE);
       generateMutation.reset();
     }
   }, [active]);
@@ -129,10 +127,9 @@ export default function GenerateModal({
             value={[loraScale]}
             selectionMode="single"
             onChange={({ value }) => {
-              const validScales = ["1.5", "2", "2.5", "3.3", "4"] as const;
               const v = value[0];
-              if (v && validScales.includes(v as typeof validScales[number])) {
-                setLoraScale(v as typeof validScales[number]);
+              if (v && LORA_SCALE_VALUES.includes(v as LoraScale)) {
+                setLoraScale(v as LoraScale);
               }
             }}
           >

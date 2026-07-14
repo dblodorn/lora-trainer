@@ -5,6 +5,7 @@ import { getDb, ensureLoraTable, ensureGeneratedImagesTable } from "../db";
 import { requireFalApiKey } from "../env";
 import { fal } from "@fal-ai/client";
 import { isPaymentExempt } from "./payment";
+import { loraScaleSchema, DEFAULT_LORA_SCALE } from "@/lib/lora-scale";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -26,7 +27,7 @@ export const generateRouter = router({
       z.object({
         loraTrainingId: z.string().min(1),
         prompt: z.string().min(1).max(500),
-        loraScale: z.enum(["1.5", "2", "2.5", "3.3", "4"]).default("1.5"),
+        loraScale: loraScaleSchema.default(DEFAULT_LORA_SCALE),
       }),
     )
     .mutation(async ({ input, ctx }) => {
