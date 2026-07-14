@@ -77,18 +77,9 @@ export default function SlideshowModal({
 
   const current = images[currentIndex];
   const slideVariants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? "100%" : "-100%",
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (dir: number) => ({
-      x: dir > 0 ? "-100%" : "100%",
-      opacity: 0,
-    }),
+    enter: { opacity: 0 },
+    center: { opacity: 1 },
+    exit: { opacity: 0 },
   };
 
   return (
@@ -118,7 +109,6 @@ export default function SlideshowModal({
             alignItems: "center",
             justifyContent: "center",
             padding: "32px",
-            paddingBottom: "80px",
             overflow: "hidden",
             position: "relative",
           }}
@@ -133,7 +123,7 @@ export default function SlideshowModal({
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
               style={{
                 maxWidth: "100%",
                 maxHeight: "100%",
@@ -153,7 +143,7 @@ export default function SlideshowModal({
             alignItems: "center",
             justifyContent: "center",
             gap: "4px",
-            paddingBottom: "16px",
+            padding: "0 32px 16px 32px",
           }}
         >
           <Text variant="body-2" color="neutral" attributes={{ style: { maxWidth: "600px", textAlign: "center" } }}>
