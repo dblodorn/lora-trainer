@@ -129,7 +129,11 @@ export default function GenerateModal({
             value={[loraScale]}
             selectionMode="single"
             onChange={({ value }) => {
-              if (value[0]) setLoraScale(value[0]);
+              const validScales = ["1.5", "2", "2.5", "3.3", "4"] as const;
+              const v = value[0];
+              if (v && validScales.includes(v as typeof validScales[number])) {
+                setLoraScale(v as typeof validScales[number]);
+              }
             }}
           >
             {LORA_SCALE_PRESETS.map((preset) => (

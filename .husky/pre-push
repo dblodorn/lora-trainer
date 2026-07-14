@@ -1,0 +1,8 @@
+echo "🔍 Running TypeScript type check before push..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed! Push aborted."
+  echo "Fix the type errors above and try again."
+  exit 1
+fi
+echo "✅ Type check passed. Pushing..."
