@@ -1,4 +1,4 @@
-import { View, Text, Card, Image, Actionable } from "reshaped";
+import { View, Text, Card, Image, Actionable, Badge } from "reshaped";
 
 interface GeneratedImage {
   id: string;
@@ -7,6 +7,7 @@ interface GeneratedImage {
   createdAt: string;
   width?: number | null;
   height?: number | null;
+  loraScaleName?: string | null;
 }
 
 interface GeneratedImageGridProps {
@@ -58,9 +59,16 @@ export default function GeneratedImageGrid({
                   <Text variant="caption-1" maxLines={2}>
                     {img.prompt}
                   </Text>
-                  <Text variant="caption-1" color="neutral-faded">
-                    {formatDate(img.createdAt)}
-                  </Text>
+                  <View direction="row" align="center" gap={2}>
+                    <Text variant="caption-1" color="neutral-faded">
+                      {formatDate(img.createdAt)}
+                    </Text>
+                    {img.loraScaleName && (
+                      <Badge size="small" color="primary" variant="faded">
+                        {img.loraScaleName}
+                      </Badge>
+                    )}
+                  </View>
                 </View>
               )}
             </Card>

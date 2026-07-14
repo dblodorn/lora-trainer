@@ -26,7 +26,7 @@ export default function GenerateModal({
 }: GenerateModalProps) {
   const [prompt, setPrompt] = useState("");
   const [generatedImages, setGeneratedImages] = useState<
-    { id: string; imageUrl: string; prompt: string; createdAt: string }[]
+    { id: string; imageUrl: string; prompt: string; createdAt: string; loraScaleName?: string | null }[]
   >([]);
   const [nsfwWarning, setNsfwWarning] = useState(false);
   const [loraScale, setLoraScale] = useState<LoraScale>(DEFAULT_LORA_SCALE);
@@ -49,6 +49,7 @@ export default function GenerateModal({
           imageUrl: img.imageUrl,
           prompt: data.prompt,
           createdAt: now,
+          loraScaleName: img.loraScaleName ?? null,
         })),
       );
       setNsfwWarning(data.nsfwFiltered);
