@@ -41,17 +41,23 @@ export default function SlideshowModal({
   startIndex,
 }: SlideshowModalProps) {
   const [currentIndex, setCurrentIndex] = useState(startIndex);
+  const [direction, setDirection] = useState(1);
 
   // Sync index when modal opens
   useEffect(() => {
-    if (active) setCurrentIndex(startIndex);
+    if (active) {
+      setCurrentIndex(startIndex);
+      setDirection(1);
+    }
   }, [active, startIndex]);
 
   const goBack = useCallback(() => {
+    setDirection(-1);
     setCurrentIndex((i) => (i - 1 + images.length) % images.length);
   }, [images.length]);
 
   const goForward = useCallback(() => {
+    setDirection(1);
     setCurrentIndex((i) => (i + 1) % images.length);
   }, [images.length]);
 
@@ -70,6 +76,20 @@ export default function SlideshowModal({
   if (!active || images.length === 0) return null;
 
   const current = images[currentIndex];
+  const slideVariants = {
+    enter: (dir: number) => ({
+      x: dir > 0 ? "100%" : "-100%",
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (dir: number) => ({
+      x: dir > 0 ? "-100%" : "100%",
+      opacity: 0,
+    }),
+  };
 
   return (
     <Modal
@@ -79,36 +99,41 @@ export default function SlideshowModal({
       padding={0}
       blurredOverlay
     >
-      <View
-        direction="column"
-        align="center"
-        justify="center"
-        attributes={{
-          style: {
-            height: "100vh",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(8px)",
-            position: "relative",
-          },
+      <div
+        style={{
+          height: "100vh",
+          backgroundColor: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
         }}
       >
-        {/* Image with framer-motion slide transition */}
-        <View
-          height="100%"
-          align="center"
-          justify="center"
-          padding={4}
-          attributes={{ style: { flex: 1, minHeight: 0 } }}
+        {/* Image area — takes available space, leaves room for caption */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px",
+            paddingBottom: "80px",
+            overflow: "hidden",
+            position: "relative",
+          }}
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.img
               key={current.id}
               src={current.imageUrl}
               alt={current.prompt}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               style={{
                 maxWidth: "100%",
                 maxHeight: "100%",
@@ -117,24 +142,21 @@ export default function SlideshowModal({
               }}
             />
           </AnimatePresence>
-        </View>
+        </div>
 
-        {/* Caption + counter */}
-        <View
-          direction="column"
-          align="center"
-          gap={1}
-          padding={4}
-          attributes={{
-            style: {
-              position: "absolute",
-              bottom: 0,
-              width: "100%",
-              textAlign: "center",
-            },
+        {/* Caption + counter — fixed height, does not overlap image */}
+        <div
+          style={{
+            height: "64px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px",
+            paddingBottom: "16px",
           }}
         >
-          <Text variant="body-2" color="neutral" attributes={{ style: { maxWidth: "600px" } }}>
+          <Text variant="body-2" color="neutral" attributes={{ style: { maxWidth: "600px", textAlign: "center" } }}>
             {current.prompt}
           </Text>
           <View direction="row" align="center" justify="center" gap={2}>
@@ -147,7 +169,7 @@ export default function SlideshowModal({
               </Text>
             )}
           </View>
-        </View>
+        </div>
 
         {/* Back button — left side */}
         <div
@@ -156,6 +178,7 @@ export default function SlideshowModal({
             left: "16px",
             top: "50%",
             transform: "translateY(-50%)",
+            zIndex: 10,
           }}
         >
           <Button
@@ -175,6 +198,7 @@ export default function SlideshowModal({
             right: "16px",
             top: "50%",
             transform: "translateY(-50%)",
+            zIndex: 10,
           }}
         >
           <Button
@@ -193,6 +217,7 @@ export default function SlideshowModal({
             position: "absolute",
             right: "16px",
             top: "16px",
+            zIndex: 10,
           }}
         >
           <Button
@@ -204,7 +229,7 @@ export default function SlideshowModal({
             <CloseIcon />
           </Button>
         </div>
-      </View>
+      </div>
     </Modal>
   );
 }

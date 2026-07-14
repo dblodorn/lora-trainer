@@ -56,18 +56,46 @@ export default function GeneratedImageGrid({
               style={{ cursor: "pointer" }}
             >
               <Card padding={0}>
-                <img
-                  src={img.imageUrl}
-                  alt={img.prompt}
+                <div
                   style={{
-                    aspectRatio: "1",
-                    objectFit: hoveredId === img.id ? "contain" : "cover",
-                    display: "block",
+                    position: "relative",
                     width: "100%",
-                    transition: "object-fit 0.2s ease",
+                    aspectRatio: "1",
+                    overflow: "hidden",
                     borderRadius: "var(--rs-radius-medium)",
                   }}
-                />
+                >
+                  {/* Cover image (always visible, fades out on hover) */}
+                  <img
+                    src={img.imageUrl}
+                    alt={img.prompt}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                      transition: "opacity 0.2s ease",
+                      opacity: hoveredId === img.id ? 0 : 1,
+                    }}
+                  />
+                  {/* Contain image (fades in on hover) */}
+                  <img
+                    src={img.imageUrl}
+                    alt={img.prompt}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      display: "block",
+                      transition: "opacity 0.2s ease",
+                      opacity: hoveredId === img.id ? 1 : 0,
+                    }}
+                  />
+                </div>
                 <View padding={2} gap={1}>
                   <Text variant="caption-1" maxLines={2}>
                     {img.prompt}
