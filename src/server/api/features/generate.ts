@@ -26,6 +26,7 @@ export const generateRouter = router({
       z.object({
         loraTrainingId: z.string().min(1),
         prompt: z.string().min(1).max(500),
+        loraScale: z.enum(["1.5", "2", "2.5", "3.3", "4"]).default("1.5"),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -97,7 +98,7 @@ export const generateRouter = router({
         const response = await fal.subscribe("fal-ai/flux-lora", {
           input: {
             prompt: fullPrompt,
-            loras: [{ path: lora.lora_weights_url, scale: 1.5 }],
+            loras: [{ path: lora.lora_weights_url, scale: parseFloat(input.loraScale) }],
             image_size: "square_hd",
             num_inference_steps: 28,
             guidance_scale: 3.5,

@@ -1,9 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, Button, Modal, TextField, Alert, Loader } from "reshaped";
+import { View, Text, Button, Modal, TextField, Alert, Loader, ToggleButton, ToggleButtonGroup } from "reshaped";
 import { trpc } from "@/utils/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useAuthModal } from "./AuthModalProvider";
 import GeneratedImageGrid from "./GeneratedImageGrid";
+
+const LORA_SCALE_PRESETS = [
+  { label: "chill", value: "1.5" },
+  { label: "spicy", value: "2" },
+  { label: "crunchy", value: "2.5" },
+  { label: "fried", value: "3.3" },
+  { label: "dead", value: "4" },
+] as const;
 
 interface GenerateModalProps {
   active: boolean;
@@ -23,6 +31,7 @@ export default function GenerateModal({
     { id: string; imageUrl: string; prompt: string; createdAt: string }[]
   >([]);
   const [nsfwWarning, setNsfwWarning] = useState(false);
+  const [loraScale, setLoraScale] = useState<string>("1.5");
 
   const { data: session } = authClient.useSession();
   const { openAuthModal } = useAuthModal();
@@ -56,6 +65,7 @@ export default function GenerateModal({
     if (active) {
       setGeneratedImages([]);
       setNsfwWarning(false);
+      setLoraScale("1.5");
       generateMutation.reset();
     }
   }, [active]);
@@ -72,8 +82,9 @@ export default function GenerateModal({
     generateMutation.mutate({
       loraTrainingId: loraId,
       prompt: prompt.trim(),
+      loraScale,
     });
-  }, [session, prompt, loraId, generateMutation, openAuthModal]);
+  }, [session, prompt, loraId, loraScale, generateMutation, openAuthModal]);
 
   const handleGenerateAgain = useCallback(() => {
     setGeneratedImages([]);
@@ -82,8 +93,9 @@ export default function GenerateModal({
     generateMutation.mutate({
       loraTrainingId: loraId,
       prompt: prompt.trim(),
+      loraScale,
     });
-  }, [prompt, loraId, generateMutation]);
+  }, [prompt, loraId, loraScale, generateMutation]);
 
   const isGenerating = generateMutation.isPending;
   const hasResults = generatedImages.length > 0;
@@ -91,7 +103,7 @@ export default function GenerateModal({
   const isExempt = remainingQuery.data?.isExempt ?? false;
 
   return (
-    <Modal active={active} onClose={onClose} position="center" padding={6}>
+    <Modal active={active} onClose={onClose} position="center" padding={6} size="640px">
       <View gap={4} direction="column">
         <View gap={1}>
           <Text variant="title-3">Generate Images</Text>
@@ -108,6 +120,29 @@ export default function GenerateModal({
           inputAttributes={{ maxLength: 500 }}
           disabled={isGenerating}
         />
+
+        <View gap={1}>
+          <Text variant="caption-1" color="neutral-faded">
+            LoRA weight
+          </Text>
+          <ToggleButtonGroup
+            value={[loraScale]}
+            selectionMode="single"
+            onChange={({ value }) => {
+              if (value[0]) setLoraScale(value[0]);
+            }}
+          >
+            {LORA_SCALE_PRESETS.map((preset) => (
+              <ToggleButton
+                key={preset.value}
+                value={preset.value}
+                variant="outline"
+              >
+                {preset.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </View>
 
         <View direction="row" align="center" gap={2}>
           {remaining !== null && !isExempt && (
