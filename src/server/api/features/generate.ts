@@ -5,7 +5,7 @@ import { getDb, ensureLoraTable, ensureGeneratedImagesTable } from "../db";
 import { requireFalApiKey } from "../env";
 import { fal } from "@fal-ai/client";
 import { isPaymentExempt } from "./payment";
-import { loraScaleSchema, DEFAULT_LORA_SCALE } from "@/lib/lora-scale";
+import { loraScaleSchema, DEFAULT_LORA_SCALE, getLoraScaleLabel } from "@/lib/lora-scale";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -133,6 +133,8 @@ export const generateRouter = router({
         width: number | null;
         height: number | null;
         seed: string | null;
+        loraScaleValue: string;
+        loraScaleName: string;
       }[] = [];
 
       for (const image of result.images) {
@@ -148,6 +150,8 @@ export const generateRouter = router({
             image_width: image.width ?? null,
             image_height: image.height ?? null,
             seed: result.seed != null ? String(result.seed) : null,
+            lora_scale_value: input.loraScale,
+            lora_scale_name: getLoraScaleLabel(input.loraScale),
             created_at: now,
           })
           .execute();
@@ -158,6 +162,8 @@ export const generateRouter = router({
           width: image.width ?? null,
           height: image.height ?? null,
           seed: result.seed != null ? String(result.seed) : null,
+          loraScaleValue: input.loraScale,
+          loraScaleName: getLoraScaleLabel(input.loraScale),
         });
       }
 
@@ -188,6 +194,8 @@ export const generateRouter = router({
           "image_width",
           "image_height",
           "seed",
+          "lora_scale_value",
+          "lora_scale_name",
           "created_at",
         ])
         .where("lora_training_id", "=", input.loraTrainingId)
@@ -202,6 +210,8 @@ export const generateRouter = router({
         width: row.image_width,
         height: row.image_height,
         seed: row.seed,
+        loraScaleValue: row.lora_scale_value,
+        loraScaleName: row.lora_scale_name,
         createdAt: row.created_at,
       }));
     }),

@@ -25,3 +25,8 @@ export const LORA_SCALE_PRESETS: readonly { label: string; value: LoraScale }[] 
   { label: "fried", value: "3.3" },
   { label: "dead", value: "4" },
 ];
+
+/** Look up the preset label for a given scale value */
+export function getLoraScaleLabel(value: LoraScale): string {
+  return LORA_SCALE_PRESETS.find((p) => p.value === value)?.label ?? value;
+}
