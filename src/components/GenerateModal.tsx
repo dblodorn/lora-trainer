@@ -31,7 +31,7 @@ export default function GenerateModal({
     { id: string; imageUrl: string; prompt: string; createdAt: string }[]
   >([]);
   const [nsfwWarning, setNsfwWarning] = useState(false);
-  const [loraScale, setLoraScale] = useState<string>("1.5");
+  const [loraScale, setLoraScale] = useState<"1.5" | "2" | "2.5" | "3.3" | "4">("1.5");
 
   const { data: session } = authClient.useSession();
   const { openAuthModal } = useAuthModal();
