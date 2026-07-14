@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import { trpc } from "@/utils/trpc";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
+import SlideshowModal from "@/components/SlideshowModal";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -19,6 +20,7 @@ export default function LoraDetailPage() {
   const router = useRouter();
   const id = router.query.id as string | undefined;
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [slideshowIndex, setSlideshowIndex] = useState<number | null>(null);
 
   const loraQuery = trpc.lora.getById.useQuery(
     { id: id! },
@@ -182,6 +184,7 @@ export default function LoraDetailPage() {
             <GeneratedImageGrid
               images={images}
               variant="page"
+              onImageClick={(index) => setSlideshowIndex(index)}
             />
           )}
         </View>
@@ -194,6 +197,16 @@ export default function LoraDetailPage() {
           onClose={() => setShowGenerateModal(false)}
           loraId={lora.id}
           triggerWord={lora.triggerWord}
+        />
+      )}
+
+      {/* Slideshow Modal */}
+      {images.length > 0 && (
+        <SlideshowModal
+          active={slideshowIndex !== null}
+          onClose={() => setSlideshowIndex(null)}
+          images={images}
+          startIndex={slideshowIndex ?? 0}
         />
       )}
     </View>
