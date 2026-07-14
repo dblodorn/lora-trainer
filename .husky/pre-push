@@ -1,0 +1,15 @@
+#!/bin/sh
+echo "🔍 Running TypeScript type check before push..."
+
+# Run tsc directly with a generous timeout (cold starts can be slow)
+timeout 240 ./node_modules/.bin/tsc --noEmit
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "❌ Type check failed (exit $status)! Push aborted."
+  echo "Fix the type errors above and try again."
+  echo "To bypass: git push --no-verify"
+  exit 1
+fi
+
+echo "✅ Type check passed. Pushing..."
