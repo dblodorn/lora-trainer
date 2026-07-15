@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, Button, Modal } from "reshaped";
+import { View, Text, Button, Modal, Badge } from "reshaped";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface SlideshowImage {
@@ -134,31 +134,23 @@ export default function SlideshowModal({
           </AnimatePresence>
         </div>
 
-        {/* Caption + counter — fixed height, does not overlap image */}
+        {/* Caption + counter on one line */}
         <div
           style={{
-            height: "64px",
+            height: "48px",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: "4px",
+            gap: "8px",
             padding: "0 32px 16px 32px",
           }}
         >
-          <Text variant="body-2" color="neutral" attributes={{ style: { maxWidth: "600px", textAlign: "center" } }}>
+          <Text variant="body-2" color="neutral" attributes={{ style: { maxWidth: "500px", textAlign: "center" } }}>
             {current.prompt}
           </Text>
-          <View direction="row" align="center" justify="center" gap={2}>
-            <Text variant="caption-1" color="neutral-faded">
-              {currentIndex + 1} / {images.length}
-            </Text>
-            {current.loraScaleName && (
-              <Text variant="caption-1" color="neutral-faded">
-                · {current.loraScaleName}
-              </Text>
-            )}
-          </View>
+          <Text variant="caption-1" color="neutral-faded">
+            {currentIndex + 1} / {images.length}
+          </Text>
         </div>
 
         {/* Back button — left side */}
@@ -219,6 +211,22 @@ export default function SlideshowModal({
             <CloseIcon />
           </Button>
         </div>
+
+        {/* LoRA weight badge — top left */}
+        {current.loraScaleName && (
+          <div
+            style={{
+              position: "absolute",
+              left: "16px",
+              top: "16px",
+              zIndex: 10,
+            }}
+          >
+            <Badge size="small" color="primary" variant="faded">
+              {current.loraScaleName}
+            </Badge>
+          </div>
+        )}
       </div>
     </Modal>
   );
