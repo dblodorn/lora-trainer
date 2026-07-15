@@ -6,6 +6,7 @@ import { requireFalApiKey } from "../env";
 import { fal } from "@fal-ai/client";
 import { isPaymentExempt } from "./payment";
 import { loraScaleSchema, DEFAULT_LORA_SCALE, getLoraScaleLabel } from "@/lib/lora-scale";
+import { imageDimensionsSchema, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "@/lib/image-dimensions";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -28,6 +29,8 @@ export const generateRouter = router({
         loraTrainingId: z.string().min(1),
         prompt: z.string().min(1).max(500),
         loraScale: loraScaleSchema.default(DEFAULT_LORA_SCALE),
+        imageWidth: imageDimensionsSchema.shape.imageWidth,
+        imageHeight: imageDimensionsSchema.shape.imageHeight,
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -100,7 +103,7 @@ export const generateRouter = router({
           input: {
             prompt: fullPrompt,
             loras: [{ path: lora.lora_weights_url, scale: parseFloat(input.loraScale) }],
-            image_size: "square_hd",
+            image_size: { width: input.imageWidth, height: input.imageHeight },
             num_inference_steps: 28,
             guidance_scale: 3.5,
             num_images: IMAGES_PER_BATCH,
@@ -135,6 +138,8 @@ export const generateRouter = router({
         seed: string | null;
         loraScaleValue: string;
         loraScaleName: string;
+        genWidth: number;
+        genHeight: number;
       }[] = [];
 
       for (const image of result.images) {
@@ -152,6 +157,8 @@ export const generateRouter = router({
             seed: result.seed != null ? String(result.seed) : null,
             lora_scale_value: input.loraScale,
             lora_scale_name: getLoraScaleLabel(input.loraScale),
+            gen_width: input.imageWidth,
+            gen_height: input.imageHeight,
             created_at: now,
           })
           .execute();
@@ -164,6 +171,8 @@ export const generateRouter = router({
           seed: result.seed != null ? String(result.seed) : null,
           loraScaleValue: input.loraScale,
           loraScaleName: getLoraScaleLabel(input.loraScale),
+          genWidth: input.imageWidth,
+          genHeight: input.imageHeight,
         });
       }
 
@@ -196,6 +205,8 @@ export const generateRouter = router({
           "seed",
           "lora_scale_value",
           "lora_scale_name",
+          "gen_width",
+          "gen_height",
           "created_at",
         ])
         .where("lora_training_id", "=", input.loraTrainingId)
@@ -212,6 +223,8 @@ export const generateRouter = router({
         seed: row.seed,
         loraScaleValue: row.lora_scale_value,
         loraScaleName: row.lora_scale_name,
+        genWidth: row.gen_width,
+        genHeight: row.gen_height,
         createdAt: row.created_at,
       }));
     }),

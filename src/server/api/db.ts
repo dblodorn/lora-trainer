@@ -31,6 +31,8 @@ export interface GeneratedImagesTable {
   seed: string | null;
   lora_scale_value: string | null;
   lora_scale_name: string | null;
+  gen_width: number | null;
+  gen_height: number | null;
   created_at: string;
 }
 
@@ -113,5 +115,7 @@ export async function ensureGeneratedImagesTable(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_gen_images_created ON generated_images(created_at)`.execute(db);
   await sql`ALTER TABLE generated_images ADD COLUMN lora_scale_value TEXT`.execute(db).catch(() => {});
   await sql`ALTER TABLE generated_images ADD COLUMN lora_scale_name TEXT`.execute(db).catch(() => {});
+  await sql`ALTER TABLE generated_images ADD COLUMN gen_width INTEGER`.execute(db).catch(() => {});
+  await sql`ALTER TABLE generated_images ADD COLUMN gen_height INTEGER`.execute(db).catch(() => {});
   _genImagesInitialized = true;
 }

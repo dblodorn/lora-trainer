@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, Button, Modal, TextField, Alert, Loader, ToggleButton, ToggleButtonGroup } from "reshaped";
+import { View, Text, Button, Modal, TextField, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
 import { trpc } from "@/utils/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useAuthModal } from "./AuthModalProvider";
@@ -10,6 +10,12 @@ import {
   LORA_SCALE_VALUES,
   type LoraScale,
 } from "@/lib/lora-scale";
+import {
+  IMAGE_DIMENSION_MIN,
+  IMAGE_DIMENSION_MAX,
+  DEFAULT_IMAGE_WIDTH,
+  DEFAULT_IMAGE_HEIGHT,
+} from "@/lib/image-dimensions";
 
 interface GenerateModalProps {
   active: boolean;
@@ -30,6 +36,8 @@ export default function GenerateModal({
   >([]);
   const [nsfwWarning, setNsfwWarning] = useState(false);
   const [loraScale, setLoraScale] = useState<LoraScale>(DEFAULT_LORA_SCALE);
+  const [imageWidth, setImageWidth] = useState<number>(DEFAULT_IMAGE_WIDTH);
+  const [imageHeight, setImageHeight] = useState<number>(DEFAULT_IMAGE_HEIGHT);
 
   const { data: session } = authClient.useSession();
   const { openAuthModal } = useAuthModal();
@@ -65,6 +73,8 @@ export default function GenerateModal({
       setGeneratedImages([]);
       setNsfwWarning(false);
       setLoraScale(DEFAULT_LORA_SCALE);
+      setImageWidth(DEFAULT_IMAGE_WIDTH);
+      setImageHeight(DEFAULT_IMAGE_HEIGHT);
       generateMutation.reset();
     }
   }, [active]);
@@ -82,8 +92,10 @@ export default function GenerateModal({
       loraTrainingId: loraId,
       prompt: prompt.trim(),
       loraScale,
+      imageWidth,
+      imageHeight,
     });
-  }, [session, prompt, loraId, loraScale, generateMutation, openAuthModal]);
+  }, [session, prompt, loraId, loraScale, imageWidth, imageHeight, generateMutation, openAuthModal]);
 
   const handleGenerateAgain = useCallback(() => {
     setGeneratedImages([]);
@@ -93,8 +105,10 @@ export default function GenerateModal({
       loraTrainingId: loraId,
       prompt: prompt.trim(),
       loraScale,
+      imageWidth,
+      imageHeight,
     });
-  }, [prompt, loraId, loraScale, generateMutation]);
+  }, [prompt, loraId, loraScale, imageWidth, imageHeight, generateMutation]);
 
   const isGenerating = generateMutation.isPending;
   const hasResults = generatedImages.length > 0;
@@ -144,6 +158,45 @@ export default function GenerateModal({
               </ToggleButton>
             ))}
           </ToggleButtonGroup>
+        </View>
+
+        <View gap={1}>
+          <Text variant="caption-1" color="neutral-faded">
+            Image dimensions
+          </Text>
+          <View direction="row" gap={3}>
+            <View.Item grow>
+              <NumberField
+                name="imageWidth"
+                placeholder="Width"
+                value={imageWidth}
+                onChange={({ value }) => setImageWidth(value ?? DEFAULT_IMAGE_WIDTH)}
+                min={IMAGE_DIMENSION_MIN}
+                max={IMAGE_DIMENSION_MAX}
+                step={1}
+                increaseAriaLabel="Increase width"
+                decreaseAriaLabel="Decrease width"
+                disabled={isGenerating}
+              />
+            </View.Item>
+            <View.Item grow>
+              <NumberField
+                name="imageHeight"
+                placeholder="Height"
+                value={imageHeight}
+                onChange={({ value }) => setImageHeight(value ?? DEFAULT_IMAGE_HEIGHT)}
+                min={IMAGE_DIMENSION_MIN}
+                max={IMAGE_DIMENSION_MAX}
+                step={1}
+                increaseAriaLabel="Increase height"
+                decreaseAriaLabel="Decrease height"
+                disabled={isGenerating}
+              />
+            </View.Item>
+          </View>
+          <Text variant="caption-1" color="neutral-faded">
+            {IMAGE_DIMENSION_MIN}–{IMAGE_DIMENSION_MAX}px · default {DEFAULT_IMAGE_WIDTH}×{DEFAULT_IMAGE_HEIGHT}
+          </Text>
         </View>
 
         <View direction="row" align="center" gap={2}>
