@@ -38,3 +38,8 @@
 .scrollbar-hidden::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
+
+/* Slideshow nav buttons — no hover highlight */
+.slideshow-nav-btn:hover::before {
+  opacity: 0 !important;
+}
