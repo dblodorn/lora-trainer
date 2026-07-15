@@ -141,7 +141,7 @@ export default function SlideshowModal({
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            padding: "0 32px 16px 32px",
+            padding: "0 16px 16px 16px",
           }}
         >
           <Text variant="caption-1" color="neutral-faded" attributes={{ style: { flex: 1 } }}>
@@ -166,7 +166,7 @@ export default function SlideshowModal({
             variant="ghost"
             color="neutral"
             onClick={goBack}
-            attributes={{ "aria-label": "Previous image" }}
+            attributes={{ "aria-label": "Previous image", className: "slideshow-nav-btn" }}
           >
             <ChevronLeftIcon />
           </Button>
@@ -186,7 +186,7 @@ export default function SlideshowModal({
             variant="ghost"
             color="neutral"
             onClick={goForward}
-            attributes={{ "aria-label": "Next image" }}
+            attributes={{ "aria-label": "Next image", className: "slideshow-nav-btn" }}
           >
             <ChevronRightIcon />
           </Button>
@@ -205,7 +205,7 @@ export default function SlideshowModal({
             variant="ghost"
             color="neutral"
             onClick={onClose}
-            attributes={{ "aria-label": "Close slideshow" }}
+            attributes={{ "aria-label": "Close slideshow", className: "slideshow-nav-btn" }}
           >
             <CloseIcon />
           </Button>
