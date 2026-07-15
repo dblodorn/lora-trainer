@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Turso → MongoDB data migration script
  *

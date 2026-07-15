@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "migrate:turso-to-mongo": "tsx scripts/migrate-turso-to-mongo.ts",
+    "migrate:turso-to-mongo": "tsx scripts/migrate-turso-to-mongo.mts",
     "prepare": "husky"
   },
   "dependencies": {
