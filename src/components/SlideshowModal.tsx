@@ -140,15 +140,14 @@ export default function SlideshowModal({
             height: "48px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
             gap: "8px",
             padding: "0 32px 16px 32px",
           }}
         >
-          <Text variant="body-2" color="neutral" attributes={{ style: { maxWidth: "500px", textAlign: "center" } }}>
+          <Text variant="body-2" color="neutral" attributes={{ style: { flex: 1, textAlign: "center" } }}>
             {current.prompt}
           </Text>
-          <Text variant="caption-1" color="neutral-faded">
+          <Text variant="caption-1" color="neutral-faded" attributes={{ style: { flexShrink: 0, whiteSpace: "nowrap" } }}>
             {currentIndex + 1} / {images.length}
           </Text>
         </div>
