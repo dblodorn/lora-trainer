@@ -144,7 +144,7 @@ export default function SlideshowModal({
             padding: "0 32px 16px 32px",
           }}
         >
-          <Text variant="body-2" color="neutral" attributes={{ style: { flex: 1, textAlign: "center" } }}>
+          <Text variant="caption-1" color="neutral-faded" attributes={{ style: { flex: 1 } }}>
             {current.prompt}
           </Text>
           <Text variant="caption-1" color="neutral-faded" attributes={{ style: { flexShrink: 0, whiteSpace: "nowrap" } }}>
