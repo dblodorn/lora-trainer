@@ -1,121 +1,51 @@
-import { Kysely, sql } from "kysely";
-import { LibsqlDialect } from "@libsql/kysely-libsql";
+import { MongoClient, Db } from "mongodb";
 import { config } from "dotenv";
 
 // Load env the same way env.ts does
 config({ path: ".env.local" });
 config();
 
-export interface LoraTrainingsTable {
-  id: string;
-  request_id: string;
-  wallet_address: string;
-  trigger_word: string;
-  steps: number;
-  image_urls: string; // JSON-encoded string[]
-  lora_weights_url: string | null;
-  arena_channel_url: string | null;
-  arena_channel_title: string | null;
-  status: "pending" | "completed" | "failed";
-  created_at: string;
-}
+let _client: MongoClient | null = null;
+let _db: Db | null = null;
+let _indexesEnsured = false;
 
-export interface GeneratedImagesTable {
-  id: string;
-  lora_training_id: string;
-  wallet_address: string;
-  prompt: string;
-  image_url: string;
-  image_width: number | null;
-  image_height: number | null;
-  seed: string | null;
-  lora_scale_value: string | null;
-  lora_scale_name: string | null;
-  gen_width: number | null;
-  gen_height: number | null;
-  created_at: string;
-}
+/**
+ * Get the MongoDB database singleton.
+ * Collections are created automatically on first insert.
+ * Indexes are ensured on first call.
+ */
+export async function getDb(): Promise<Db> {
+  if (_db) return _db;
 
-interface Database {
-  lora_trainings: LoraTrainingsTable;
-  generated_images: GeneratedImagesTable;
-}
-
-let _db: Kysely<Database> | null = null;
-let _initialized = false;
-
-export function getDb(): Kysely<Database> {
-  if (!_db) {
-    const url = process.env.TURSO_DATABASE_URL;
-    if (!url) {
-      throw new Error(
-        "TURSO_DATABASE_URL is not configured. Set it in .env to use database features.",
-      );
-    }
-    _db = new Kysely<Database>({
-      dialect: new LibsqlDialect({
-        url,
-        authToken: process.env.TURSO_AUTH_TOKEN,
-      }),
-    });
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error(
+      "MONGODB_URI is not configured. Set it in .env to use database features.",
+    );
   }
+
+  _client = new MongoClient(uri);
+  await _client.connect();
+  _db = _client.db();
+
+  if (!_indexesEnsured) {
+    await ensureIndexes(_db);
+    _indexesEnsured = true;
+  }
+
   return _db;
 }
 
-export async function ensureLoraTable(): Promise<void> {
-  if (_initialized) return;
-  const db = getDb();
-  await sql`
-    CREATE TABLE IF NOT EXISTS lora_trainings (
-      id TEXT PRIMARY KEY,
-      request_id TEXT UNIQUE NOT NULL,
-      wallet_address TEXT NOT NULL,
-      trigger_word TEXT NOT NULL,
-      steps INTEGER NOT NULL,
-      image_urls TEXT NOT NULL,
-      lora_weights_url TEXT,
-      arena_channel_url TEXT,
-      arena_channel_title TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TEXT NOT NULL
-    )
-  `.execute(db);
-  // Add columns for existing tables (no-op if they already exist)
-  await sql`ALTER TABLE lora_trainings ADD COLUMN arena_channel_url TEXT`.execute(db).catch(() => {});
-  await sql`ALTER TABLE lora_trainings ADD COLUMN arena_channel_title TEXT`.execute(db).catch(() => {});
-  await sql`CREATE INDEX IF NOT EXISTS idx_lora_trainings_created_at ON lora_trainings(created_at)`.execute(
-    db,
-  );
-  await sql`CREATE INDEX IF NOT EXISTS idx_lora_trainings_status ON lora_trainings(status)`.execute(
-    db,
-  );
-  _initialized = true;
-}
+async function ensureIndexes(db: Db): Promise<void> {
+  // lora_trainings indexes
+  const loraCol = db.collection("lora_trainings");
+  await loraCol.createIndex({ requestId: 1 }, { unique: true });
+  await loraCol.createIndex({ status: 1 });
+  await loraCol.createIndex({ createdAt: -1 });
 
-let _genImagesInitialized = false;
-
-export async function ensureGeneratedImagesTable(): Promise<void> {
-  if (_genImagesInitialized) return;
-  const db = getDb();
-  await sql`
-    CREATE TABLE IF NOT EXISTS generated_images (
-      id TEXT PRIMARY KEY,
-      lora_training_id TEXT NOT NULL,
-      wallet_address TEXT NOT NULL,
-      prompt TEXT NOT NULL,
-      image_url TEXT NOT NULL,
-      image_width INTEGER,
-      image_height INTEGER,
-      seed TEXT,
-      created_at TEXT NOT NULL
-    )
-  `.execute(db);
-  await sql`CREATE INDEX IF NOT EXISTS idx_gen_images_lora ON generated_images(lora_training_id)`.execute(db);
-  await sql`CREATE INDEX IF NOT EXISTS idx_gen_images_wallet ON generated_images(wallet_address)`.execute(db);
-  await sql`CREATE INDEX IF NOT EXISTS idx_gen_images_created ON generated_images(created_at)`.execute(db);
-  await sql`ALTER TABLE generated_images ADD COLUMN lora_scale_value TEXT`.execute(db).catch(() => {});
-  await sql`ALTER TABLE generated_images ADD COLUMN lora_scale_name TEXT`.execute(db).catch(() => {});
-  await sql`ALTER TABLE generated_images ADD COLUMN gen_width INTEGER`.execute(db).catch(() => {});
-  await sql`ALTER TABLE generated_images ADD COLUMN gen_height INTEGER`.execute(db).catch(() => {});
-  _genImagesInitialized = true;
+  // generated_images indexes
+  const imgCol = db.collection("generated_images");
+  await imgCol.createIndex({ loraTrainingId: 1 });
+  await imgCol.createIndex({ walletAddress: 1 });
+  await imgCol.createIndex({ createdAt: -1 });
 }

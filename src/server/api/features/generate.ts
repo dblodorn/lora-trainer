@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
-import { getDb, ensureLoraTable, ensureGeneratedImagesTable } from "../db";
+import { getDb } from "../db";
 import { requireFalApiKey } from "../env";
 import { fal } from "@fal-ai/client";
 import { isPaymentExempt } from "./payment";
@@ -35,15 +35,12 @@ export const generateRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const walletAddress = ctx.session.user.walletAddress;
+      const db = await getDb();
 
       // Look up the LoRA training record
-      await ensureLoraTable();
-      const db = getDb();
-      const lora = await db
-        .selectFrom("lora_trainings")
-        .select(["id", "trigger_word", "lora_weights_url", "status"])
-        .where("id", "=", input.loraTrainingId)
-        .executeTakeFirst();
+      const lora = await db.collection("lora_trainings").findOne({
+        _id: input.loraTrainingId,
+      });
 
       if (!lora) {
         throw new TRPCError({
@@ -52,7 +49,7 @@ export const generateRouter = router({
         });
       }
 
-      if (lora.status !== "completed" || !lora.lora_weights_url) {
+      if (lora.status !== "completed" || !lora.loraWeightsUrl) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "This LoRA is not ready for generation. Training must be completed first.",
@@ -60,7 +57,6 @@ export const generateRouter = router({
       }
 
       // Check rate limit (admin/QA exempt)
-      await ensureGeneratedImagesTable();
       const exempt = isPaymentExempt(walletAddress);
 
       if (!exempt) {
@@ -68,14 +64,11 @@ export const generateRouter = router({
           Date.now() - RATE_LIMIT_WINDOW_MS,
         ).toISOString();
 
-        const countResult = await db
-          .selectFrom("generated_images")
-          .select(db.fn.countAll().as("count"))
-          .where("wallet_address", "=", walletAddress)
-          .where("created_at", ">", windowStart)
-          .executeTakeFirst();
+        const imageCount = await db.collection("generated_images").countDocuments({
+          walletAddress,
+          createdAt: { $gt: windowStart },
+        });
 
-        const imageCount = Number(countResult?.count ?? 0);
         const batchCount = Math.ceil(imageCount / IMAGES_PER_BATCH);
 
         if (batchCount >= RATE_LIMIT_BATCHES) {
@@ -87,7 +80,7 @@ export const generateRouter = router({
       }
 
       // Build full prompt with trigger word
-      const fullPrompt = `${input.prompt} in the style of ${lora.trigger_word}`;
+      const fullPrompt = `${input.prompt} in the style of ${lora.triggerWord}`;
 
       // Call fal.ai
       ensureFalConfigured();
@@ -102,7 +95,7 @@ export const generateRouter = router({
         const response = await fal.subscribe("fal-ai/flux-lora", {
           input: {
             prompt: fullPrompt,
-            loras: [{ path: lora.lora_weights_url, scale: parseFloat(input.loraScale) }],
+            loras: [{ path: lora.loraWeightsUrl, scale: parseFloat(input.loraScale) }],
             image_size: { width: input.imageWidth, height: input.imageHeight },
             num_inference_steps: 28,
             guidance_scale: 3.5,
@@ -144,24 +137,21 @@ export const generateRouter = router({
 
       for (const image of result.images) {
         const id = generateId();
-        await db
-          .insertInto("generated_images")
-          .values({
-            id,
-            lora_training_id: input.loraTrainingId,
-            wallet_address: walletAddress,
-            prompt: input.prompt,
-            image_url: image.url,
-            image_width: image.width ?? null,
-            image_height: image.height ?? null,
-            seed: result.seed != null ? String(result.seed) : null,
-            lora_scale_value: input.loraScale,
-            lora_scale_name: getLoraScaleLabel(input.loraScale),
-            gen_width: input.imageWidth,
-            gen_height: input.imageHeight,
-            created_at: now,
-          })
-          .execute();
+        await db.collection("generated_images").insertOne({
+          _id: id,
+          loraTrainingId: input.loraTrainingId,
+          walletAddress,
+          prompt: input.prompt,
+          imageUrl: image.url,
+          imageWidth: image.width ?? null,
+          imageHeight: image.height ?? null,
+          seed: result.seed != null ? String(result.seed) : null,
+          loraScaleValue: input.loraScale,
+          loraScaleName: getLoraScaleLabel(input.loraScale),
+          genWidth: input.imageWidth,
+          genHeight: input.imageHeight,
+          createdAt: now,
+        });
 
         savedImages.push({
           id,
@@ -190,42 +180,27 @@ export const generateRouter = router({
   listByLora: publicProcedure
     .input(z.object({ loraTrainingId: z.string().min(1) }))
     .query(async ({ input }) => {
-      await ensureGeneratedImagesTable();
-      const db = getDb();
+      const db = await getDb();
 
-      const rows = await db
-        .selectFrom("generated_images")
-        .select([
-          "id",
-          "wallet_address",
-          "prompt",
-          "image_url",
-          "image_width",
-          "image_height",
-          "seed",
-          "lora_scale_value",
-          "lora_scale_name",
-          "gen_width",
-          "gen_height",
-          "created_at",
-        ])
-        .where("lora_training_id", "=", input.loraTrainingId)
-        .orderBy("created_at", "desc")
-        .execute();
+      const docs = await db
+        .collection("generated_images")
+        .find({ loraTrainingId: input.loraTrainingId })
+        .sort({ createdAt: -1 })
+        .toArray();
 
-      return rows.map((row) => ({
-        id: row.id,
-        walletAddress: row.wallet_address,
-        prompt: row.prompt,
-        imageUrl: row.image_url,
-        width: row.image_width,
-        height: row.image_height,
-        seed: row.seed,
-        loraScaleValue: row.lora_scale_value,
-        loraScaleName: row.lora_scale_name,
-        genWidth: row.gen_width,
-        genHeight: row.gen_height,
-        createdAt: row.created_at,
+      return docs.map((doc) => ({
+        id: doc._id,
+        walletAddress: doc.walletAddress,
+        prompt: doc.prompt,
+        imageUrl: doc.imageUrl,
+        width: doc.imageWidth,
+        height: doc.imageHeight,
+        seed: doc.seed,
+        loraScaleValue: doc.loraScaleValue,
+        loraScaleName: doc.loraScaleName,
+        genWidth: doc.genWidth,
+        genHeight: doc.genHeight,
+        createdAt: doc.createdAt,
       }));
     }),
 
@@ -237,21 +212,17 @@ export const generateRouter = router({
       return { remaining: RATE_LIMIT_BATCHES, limit: RATE_LIMIT_BATCHES, isExempt: true };
     }
 
-    await ensureGeneratedImagesTable();
-    const db = getDb();
+    const db = await getDb();
 
     const windowStart = new Date(
       Date.now() - RATE_LIMIT_WINDOW_MS,
     ).toISOString();
 
-    const countResult = await db
-      .selectFrom("generated_images")
-      .select(db.fn.countAll().as("count"))
-      .where("wallet_address", "=", walletAddress)
-      .where("created_at", ">", windowStart)
-      .executeTakeFirst();
+    const imageCount = await db.collection("generated_images").countDocuments({
+      walletAddress,
+      createdAt: { $gt: windowStart },
+    });
 
-    const imageCount = Number(countResult?.count ?? 0);
     const batchCount = Math.ceil(imageCount / IMAGES_PER_BATCH);
     const remaining = Math.max(0, RATE_LIMIT_BATCHES - batchCount);
 

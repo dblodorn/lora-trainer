@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
-import { getDb, ensureLoraTable } from "../db";
+import { getDb } from "../db";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -20,25 +20,21 @@ export async function createPendingLora(params: {
   arenaChannelUrl?: string;
   arenaChannelTitle?: string;
 }): Promise<{ id: string }> {
-  await ensureLoraTable();
-  const db = getDb();
+  const db = await getDb();
   const id = generateId();
-  await db
-    .insertInto("lora_trainings")
-    .values({
-      id,
-      request_id: params.requestId,
-      wallet_address: params.walletAddress,
-      trigger_word: params.triggerWord,
-      steps: params.steps,
-      image_urls: JSON.stringify(params.imageUrls),
-      lora_weights_url: null,
-      arena_channel_url: params.arenaChannelUrl ?? null,
-      arena_channel_title: params.arenaChannelTitle ?? null,
-      status: "pending",
-      created_at: new Date().toISOString(),
-    })
-    .execute();
+  await db.collection("lora_trainings").insertOne({
+    _id: id,
+    requestId: params.requestId,
+    walletAddress: params.walletAddress,
+    triggerWord: params.triggerWord,
+    steps: params.steps,
+    imageUrls: params.imageUrls,
+    loraWeightsUrl: null,
+    arenaChannelUrl: params.arenaChannelUrl ?? null,
+    arenaChannelTitle: params.arenaChannelTitle ?? null,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  });
   return { id };
 }
 
@@ -51,16 +47,12 @@ export const loraRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await ensureLoraTable();
-      const db = getDb();
+      const db = await getDb();
       const walletAddress = ctx.session.user.walletAddress;
 
-      // Verify the record exists and belongs to this wallet
-      const existing = await db
-        .selectFrom("lora_trainings")
-        .select(["id", "wallet_address", "status"])
-        .where("request_id", "=", input.requestId)
-        .executeTakeFirst();
+      const existing = await db.collection("lora_trainings").findOne({
+        requestId: input.requestId,
+      });
 
       if (!existing) {
         throw new TRPCError({
@@ -69,7 +61,7 @@ export const loraRouter = router({
         });
       }
 
-      if (existing.wallet_address.toLowerCase() !== walletAddress.toLowerCase()) {
+      if (existing.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You are not the owner of this training record.",
@@ -77,18 +69,18 @@ export const loraRouter = router({
       }
 
       if (existing.status === "completed") {
-        // Already completed — idempotent, just return
         return { success: true };
       }
 
-      await db
-        .updateTable("lora_trainings")
-        .set({
-          lora_weights_url: input.loraWeightsUrl,
-          status: "completed",
-        })
-        .where("id", "=", existing.id)
-        .execute();
+      await db.collection("lora_trainings").updateOne(
+        { _id: existing._id },
+        {
+          $set: {
+            loraWeightsUrl: input.loraWeightsUrl,
+            status: "completed",
+          },
+        },
+      );
 
       return { success: true };
     }),
@@ -96,28 +88,13 @@ export const loraRouter = router({
   getById: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input }) => {
-      await ensureLoraTable();
-      const db = getDb();
+      const db = await getDb();
 
-      const row = await db
-        .selectFrom("lora_trainings")
-        .select([
-          "id",
-          "request_id",
-          "wallet_address",
-          "trigger_word",
-          "steps",
-          "image_urls",
-          "lora_weights_url",
-          "arena_channel_url",
-          "arena_channel_title",
-          "status",
-          "created_at",
-        ])
-        .where("id", "=", input.id)
-        .executeTakeFirst();
+      const doc = await db.collection("lora_trainings").findOne({
+        _id: input.id,
+      });
 
-      if (!row) {
+      if (!doc) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "LoRA not found.",
@@ -125,53 +102,40 @@ export const loraRouter = router({
       }
 
       return {
-        id: row.id,
-        requestId: row.request_id,
-        walletAddress: row.wallet_address,
-        triggerWord: row.trigger_word,
-        steps: row.steps,
-        imageUrls: JSON.parse(row.image_urls) as string[],
-        loraWeightsUrl: row.lora_weights_url,
-        arenaChannelUrl: row.arena_channel_url,
-        arenaChannelTitle: row.arena_channel_title,
-        status: row.status,
-        createdAt: row.created_at,
+        id: doc._id,
+        requestId: doc.requestId,
+        walletAddress: doc.walletAddress,
+        triggerWord: doc.triggerWord,
+        steps: doc.steps,
+        imageUrls: doc.imageUrls,
+        loraWeightsUrl: doc.loraWeightsUrl,
+        arenaChannelUrl: doc.arenaChannelUrl,
+        arenaChannelTitle: doc.arenaChannelTitle,
+        status: doc.status,
+        createdAt: doc.createdAt,
       };
     }),
 
   list: publicProcedure.query(async () => {
-    await ensureLoraTable();
-    const db = getDb();
+      const db = await getDb();
 
-    const rows = await db
-      .selectFrom("lora_trainings")
-      .select([
-        "id",
-        "request_id",
-        "wallet_address",
-        "trigger_word",
-        "steps",
-        "image_urls",
-        "lora_weights_url",
-        "arena_channel_url",
-        "arena_channel_title",
-        "created_at",
-      ])
-      .where("status", "=", "completed")
-      .orderBy("created_at", "desc")
-      .execute();
+      const docs = await db
+        .collection("lora_trainings")
+        .find({ status: "completed" })
+        .sort({ createdAt: -1 })
+        .toArray();
 
-    return rows.map((row) => ({
-      id: row.id,
-      requestId: row.request_id,
-      walletAddress: row.wallet_address,
-      triggerWord: row.trigger_word,
-      steps: row.steps,
-      imageUrls: JSON.parse(row.image_urls) as string[],
-      loraWeightsUrl: row.lora_weights_url,
-      arenaChannelUrl: row.arena_channel_url,
-      arenaChannelTitle: row.arena_channel_title,
-      createdAt: row.created_at,
-    }));
+      return docs.map((doc) => ({
+        id: doc._id,
+        requestId: doc.requestId,
+        walletAddress: doc.walletAddress,
+        triggerWord: doc.triggerWord,
+        steps: doc.steps,
+        imageUrls: doc.imageUrls,
+        loraWeightsUrl: doc.loraWeightsUrl,
+        arenaChannelUrl: doc.arenaChannelUrl,
+        arenaChannelTitle: doc.arenaChannelTitle,
+        createdAt: doc.createdAt,
+      }));
   }),
 });
