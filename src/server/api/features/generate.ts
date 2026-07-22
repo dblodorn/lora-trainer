@@ -7,6 +7,7 @@ import { fal } from "@fal-ai/client";
 import { isPaymentExempt } from "./payment";
 import { loraScaleSchema, DEFAULT_LORA_SCALE, getLoraScaleLabel } from "@/lib/lora-scale";
 import { imageDimensionsSchema, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "@/lib/image-dimensions";
+import { mirrorUrlToSpaces } from "./storage";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -139,12 +140,24 @@ export const generateRouter = router({
 
       for (const image of result.images) {
         const id = generateId();
+        const contentType = image.content_type ?? "image/jpeg";
+        const ext = contentType.includes("png") ? "png" : "jpg";
+        const spacesKey = `lora-trainer/images/${input.loraTrainingId}/${id}.${ext}`;
+
+        let cdnUrl: string;
+        try {
+          cdnUrl = await mirrorUrlToSpaces(image.url, spacesKey, contentType);
+        } catch (err) {
+          console.error("Failed to mirror image to Spaces, using FAL URL:", err);
+          cdnUrl = image.url;
+        }
+
         await db.collection<GeneratedImageDoc>("generated_images").insertOne({
           _id: id,
           loraTrainingId: input.loraTrainingId,
           walletAddress,
           prompt: input.prompt,
-          imageUrl: image.url,
+          imageUrl: cdnUrl,
           imageWidth: image.width ?? null,
           imageHeight: image.height ?? null,
           seed: result.seed != null ? String(result.seed) : null,
@@ -157,7 +170,7 @@ export const generateRouter = router({
 
         savedImages.push({
           id,
-          imageUrl: image.url,
+          imageUrl: cdnUrl,
           width: image.width ?? null,
           height: image.height ?? null,
           seed: result.seed != null ? String(result.seed) : null,
