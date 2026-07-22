@@ -12,6 +12,8 @@ export interface LoraTrainingDoc {
   triggerWord: string;
   steps: number;
   imageUrls: string[];
+  imageUrlsSpaces: string[];
+  trainingZipUrl: string | null;
   loraWeightsUrl: string | null;
   arenaChannelUrl: string | null;
   arenaChannelTitle: string | null;

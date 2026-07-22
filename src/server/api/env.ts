@@ -15,6 +15,12 @@ const envSchema = z.object({
   PAYMENT_RECIPIENT: z.string().optional(),
   QA_WALLETS: z.string().optional(),
   MONGODB_URI: z.string().optional(),
+  DO_SPACES_ENDPOINT: z.string().optional(),
+  DO_SPACES_REGION: z.string().optional(),
+  DO_SPACES_KEY: z.string().optional(),
+  DO_SPACES_SECRET: z.string().optional(),
+  DO_SPACES_BUCKET: z.string().optional(),
+  DO_SPACES_CDN_URL: z.string().optional(),
 });
 
 // Parse environment variables (will not throw since all keys are optional)
@@ -30,6 +36,12 @@ export const env = envResult.success
       PAYMENT_RECIPIENT: undefined,
       QA_WALLETS: undefined,
       MONGODB_URI: undefined,
+      DO_SPACES_ENDPOINT: undefined,
+      DO_SPACES_REGION: undefined,
+      DO_SPACES_KEY: undefined,
+      DO_SPACES_SECRET: undefined,
+      DO_SPACES_BUCKET: undefined,
+      DO_SPACES_CDN_URL: undefined,
     };
 
 /**
@@ -101,4 +113,37 @@ export function getQaWallets(): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+export interface SpacesConfig {
+  endpoint: string;
+  region: string;
+  key: string;
+  secret: string;
+  bucket: string;
+  cdnUrl: string;
+}
+
+/**
+ * Require DO Spaces configuration at runtime. Call this inside procedures
+ * that need Spaces so only those routes fail — not the entire router.
+ */
+export function requireSpacesConfig(): SpacesConfig {
+  const cfg: SpacesConfig = {
+    endpoint: env.DO_SPACES_ENDPOINT ?? "",
+    region: env.DO_SPACES_REGION ?? "",
+    key: env.DO_SPACES_KEY ?? "",
+    secret: env.DO_SPACES_SECRET ?? "",
+    bucket: env.DO_SPACES_BUCKET ?? "",
+    cdnUrl: env.DO_SPACES_CDN_URL ?? "",
+  };
+  const missing = (Object.keys(cfg) as (keyof SpacesConfig)[]).filter(
+    (k) => !cfg[k],
+  );
+  if (missing.length) {
+    throw new Error(
+      `DO Spaces not configured. Missing: ${missing.join(", ")}. Set them in .env.local`,
+    );
+  }
+  return cfg;
 }
