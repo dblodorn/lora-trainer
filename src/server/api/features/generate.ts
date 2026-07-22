@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
-import { getDb } from "../db";
+import { getDb, LoraTrainingDoc, GeneratedImageDoc } from "../db";
 import { requireFalApiKey } from "../env";
 import { fal } from "@fal-ai/client";
 import { isPaymentExempt } from "./payment";
@@ -38,7 +38,7 @@ export const generateRouter = router({
       const db = await getDb();
 
       // Look up the LoRA training record
-      const lora = await db.collection("lora_trainings").findOne({
+      const lora = await db.collection<LoraTrainingDoc>("lora_trainings").findOne({
         _id: input.loraTrainingId,
       });
 
@@ -64,10 +64,12 @@ export const generateRouter = router({
           Date.now() - RATE_LIMIT_WINDOW_MS,
         ).toISOString();
 
-        const imageCount = await db.collection("generated_images").countDocuments({
-          walletAddress,
-          createdAt: { $gt: windowStart },
-        });
+        const imageCount = await db
+          .collection<GeneratedImageDoc>("generated_images")
+          .countDocuments({
+            walletAddress,
+            createdAt: { $gt: windowStart },
+          });
 
         const batchCount = Math.ceil(imageCount / IMAGES_PER_BATCH);
 
@@ -137,7 +139,7 @@ export const generateRouter = router({
 
       for (const image of result.images) {
         const id = generateId();
-        await db.collection("generated_images").insertOne({
+        await db.collection<GeneratedImageDoc>("generated_images").insertOne({
           _id: id,
           loraTrainingId: input.loraTrainingId,
           walletAddress,
@@ -183,7 +185,7 @@ export const generateRouter = router({
       const db = await getDb();
 
       const docs = await db
-        .collection("generated_images")
+        .collection<GeneratedImageDoc>("generated_images")
         .find({ loraTrainingId: input.loraTrainingId })
         .sort({ createdAt: -1 })
         .toArray();
@@ -218,10 +220,12 @@ export const generateRouter = router({
       Date.now() - RATE_LIMIT_WINDOW_MS,
     ).toISOString();
 
-    const imageCount = await db.collection("generated_images").countDocuments({
-      walletAddress,
-      createdAt: { $gt: windowStart },
-    });
+    const imageCount = await db
+      .collection<GeneratedImageDoc>("generated_images")
+      .countDocuments({
+        walletAddress,
+        createdAt: { $gt: windowStart },
+      });
 
     const batchCount = Math.ceil(imageCount / IMAGES_PER_BATCH);
     const remaining = Math.max(0, RATE_LIMIT_BATCHES - batchCount);

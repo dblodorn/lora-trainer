@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
-import { getDb } from "../db";
+import { getDb, LoraTrainingDoc, GeneratedImageDoc } from "../db";
 
 /** Fisher-Yates shuffle (in-place) */
 function shuffle<T>(arr: T[]): T[] {
@@ -27,8 +27,8 @@ export const slideshowRouter = router({
 
       // 1. Random generated images via $sample
       const genDocs = await db
-        .collection("generated_images")
-        .aggregate([
+        .collection<GeneratedImageDoc>("generated_images")
+        .aggregate<Pick<GeneratedImageDoc, "imageUrl">>([
           { $sample: { size: input.count } },
           { $project: { imageUrl: 1, _id: 0 } },
         ])
@@ -38,8 +38,8 @@ export const slideshowRouter = router({
 
       // 2. Random training rows (each has a native array of URLs)
       const trainingDocs = await db
-        .collection("lora_trainings")
-        .aggregate([
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .aggregate<Pick<LoraTrainingDoc, "imageUrls">>([
           { $match: { status: "completed" } },
           { $sample: { size: 5 } },
           { $project: { imageUrls: 1, _id: 0 } },

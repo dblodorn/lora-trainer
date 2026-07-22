@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
-import { getDb } from "../db";
+import { getDb, LoraTrainingDoc } from "../db";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -22,7 +22,7 @@ export async function createPendingLora(params: {
 }): Promise<{ id: string }> {
   const db = await getDb();
   const id = generateId();
-  await db.collection("lora_trainings").insertOne({
+  await db.collection<LoraTrainingDoc>("lora_trainings").insertOne({
     _id: id,
     requestId: params.requestId,
     walletAddress: params.walletAddress,
@@ -50,9 +50,9 @@ export const loraRouter = router({
       const db = await getDb();
       const walletAddress = ctx.session.user.walletAddress;
 
-      const existing = await db.collection("lora_trainings").findOne({
-        requestId: input.requestId,
-      });
+      const existing = await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .findOne({ requestId: input.requestId });
 
       if (!existing) {
         throw new TRPCError({
@@ -72,7 +72,7 @@ export const loraRouter = router({
         return { success: true };
       }
 
-      await db.collection("lora_trainings").updateOne(
+      await db.collection<LoraTrainingDoc>("lora_trainings").updateOne(
         { _id: existing._id },
         {
           $set: {
@@ -90,9 +90,9 @@ export const loraRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
 
-      const doc = await db.collection("lora_trainings").findOne({
-        _id: input.id,
-      });
+      const doc = await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .findOne({ _id: input.id });
 
       if (!doc) {
         throw new TRPCError({
@@ -120,7 +120,7 @@ export const loraRouter = router({
       const db = await getDb();
 
       const docs = await db
-        .collection("lora_trainings")
+        .collection<LoraTrainingDoc>("lora_trainings")
         .find({ status: "completed" })
         .sort({ createdAt: -1 })
         .toArray();

@@ -5,6 +5,36 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 config();
 
+export interface LoraTrainingDoc {
+  _id: string;
+  requestId: string;
+  walletAddress: string;
+  triggerWord: string;
+  steps: number;
+  imageUrls: string[];
+  loraWeightsUrl: string | null;
+  arenaChannelUrl: string | null;
+  arenaChannelTitle: string | null;
+  status: "pending" | "completed" | "failed";
+  createdAt: string;
+}
+
+export interface GeneratedImageDoc {
+  _id: string;
+  loraTrainingId: string;
+  walletAddress: string;
+  prompt: string;
+  imageUrl: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  seed: string | null;
+  loraScaleValue: string | null;
+  loraScaleName: string | null;
+  genWidth: number | null;
+  genHeight: number | null;
+  createdAt: string;
+}
+
 let _client: MongoClient | null = null;
 let _db: Db | null = null;
 let _indexesEnsured = false;
@@ -38,13 +68,13 @@ export async function getDb(): Promise<Db> {
 
 async function ensureIndexes(db: Db): Promise<void> {
   // lora_trainings indexes
-  const loraCol = db.collection("lora_trainings");
+  const loraCol = db.collection<LoraTrainingDoc>("lora_trainings");
   await loraCol.createIndex({ requestId: 1 }, { unique: true });
   await loraCol.createIndex({ status: 1 });
   await loraCol.createIndex({ createdAt: -1 });
 
   // generated_images indexes
-  const imgCol = db.collection("generated_images");
+  const imgCol = db.collection<GeneratedImageDoc>("generated_images");
   await imgCol.createIndex({ loraTrainingId: 1 });
   await imgCol.createIndex({ walletAddress: 1 });
   await imgCol.createIndex({ createdAt: -1 });
