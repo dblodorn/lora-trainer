@@ -1,17 +1,21 @@
 import { betterAuth } from "better-auth";
 import { siwe } from "better-auth/plugins/siwe";
-import { LibsqlDialect } from "@libsql/kysely-libsql";
+import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { MongoClient } from "mongodb";
 import { verifyMessage } from "viem";
 import crypto from "node:crypto";
 
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  throw new Error(
+    "MONGODB_URI is not configured. Set it in .env to use authentication.",
+  );
+}
+
+const authMongoClient = new MongoClient(mongoUri);
+
 export const auth = betterAuth({
-  database: {
-    dialect: new LibsqlDialect({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    }),
-    type: "sqlite",
-  },
+  database: mongodbAdapter(authMongoClient.db(), { client: authMongoClient }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
   plugins: [
