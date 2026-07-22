@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "migrate:turso-to-mongo": "tsx scripts/migrate-turso-to-mongo.mts",
+    "migrate:fal-to-spaces": "tsx scripts/migrate-fal-to-spaces.mts",
     "prepare": "husky"
   },
   "dependencies": {
