@@ -14,6 +14,7 @@ const envSchema = z.object({
   PAYMENT_WALLET_PRIVATE_KEY: z.string().optional(),
   PAYMENT_RECIPIENT: z.string().optional(),
   QA_WALLETS: z.string().optional(),
+  MONGODB_URI: z.string().optional(),
 });
 
 // Parse environment variables (will not throw since all keys are optional)
@@ -28,6 +29,7 @@ export const env = envResult.success
       PAYMENT_WALLET_PRIVATE_KEY: undefined,
       PAYMENT_RECIPIENT: undefined,
       QA_WALLETS: undefined,
+      MONGODB_URI: undefined,
     };
 
 /**

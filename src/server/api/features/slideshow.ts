@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
-import { getDb, ensureLoraTable, ensureGeneratedImagesTable } from "../db";
+import { getDb, LoraTrainingDoc, GeneratedImageDoc } from "../db";
 
 /** Fisher-Yates shuffle (in-place) */
 function shuffle<T>(arr: T[]): T[] {
@@ -23,36 +23,33 @@ export const slideshowRouter = router({
         .default({}),
     )
     .query(async ({ input }) => {
-      await ensureLoraTable();
-      await ensureGeneratedImagesTable();
-      const db = getDb();
+      const db = await getDb();
 
-      // 1. Random generated images
-      const genRows = await db
-        .selectFrom("generated_images")
-        .select(["image_url"])
-        .orderBy(db.fn("RANDOM", []))
-        .limit(input.count)
-        .execute();
+      // 1. Random generated images via $sample
+      const genDocs = await db
+        .collection<GeneratedImageDoc>("generated_images")
+        .aggregate<Pick<GeneratedImageDoc, "imageUrl">>([
+          { $sample: { size: input.count } },
+          { $project: { imageUrl: 1, _id: 0 } },
+        ])
+        .toArray();
 
-      const genUrls = genRows.map((r) => r.image_url);
+      const genUrls = genDocs.map((d) => d.imageUrl);
 
-      // 2. Random training rows (each has a JSON array of URLs)
-      const trainingRows = await db
-        .selectFrom("lora_trainings")
-        .select(["image_urls"])
-        .where("status", "=", "completed")
-        .orderBy(db.fn("RANDOM", []))
-        .limit(5)
-        .execute();
+      // 2. Random training rows (each has a native array of URLs)
+      const trainingDocs = await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .aggregate<Pick<LoraTrainingDoc, "imageUrls">>([
+          { $match: { status: "completed" } },
+          { $sample: { size: 5 } },
+          { $project: { imageUrls: 1, _id: 0 } },
+        ])
+        .toArray();
 
       const trainingUrls: string[] = [];
-      for (const row of trainingRows) {
-        try {
-          const urls = JSON.parse(row.image_urls) as string[];
-          trainingUrls.push(...urls);
-        } catch {
-          // skip malformed rows
+      for (const doc of trainingDocs) {
+        if (Array.isArray(doc.imageUrls)) {
+          trainingUrls.push(...doc.imageUrls);
         }
       }
 

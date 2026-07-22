@@ -1,7 +1,7 @@
 import { createNextApiHandler } from "@trpc/server/adapters/next";
 import { appRouter } from "@/server/api";
 import type { Context } from "@/server/api";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { fromNodeHeaders } from "better-auth/node";
 import { isAddress } from "viem";
 
@@ -34,7 +34,8 @@ function extractWalletAddress(user: Record<string, unknown>): string {
 export default createNextApiHandler({
   router: appRouter,
   createContext: async ({ req }): Promise<Context> => {
-    const session = await auth.api.getSession({
+    const host = (req.headers["x-forwarded-host"] as string) || req.headers.host;
+    const session = await getAuth(host).api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
     return {
