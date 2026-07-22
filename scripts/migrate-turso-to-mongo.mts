@@ -5,12 +5,12 @@
  * Prerequisites:
  *   - TURSO_DATABASE_URL and TURSO_AUTH_TOKEN set in .env or .env.local
  *   - MONGODB_URI set in .env or .env.local
- *   - Install kysely + libsql temporarily: npm install kysely @libsql/kysely-libsql
- *   - Run: npx tsx scripts/migrate-turso-to-mongo.ts
+ *   - Run: npm run migrate:turso-to-mongo
  *
  * This script reads all rows from Turso (lora_trainings + generated_images),
- * transforms snake_case → camelCase, un-JSON-encodes image_urls, and inserts
- * into MongoDB collections.
+ * transforms snake_case → camelCase, un-JSON-encodes image_urls, and upserts
+ * them into MongoDB collections (matched by _id), so re-running it is safe
+ * and never deletes documents already in MongoDB.
  */
 
 import { Kysely, sql } from "kysely";
@@ -88,28 +88,44 @@ async function migrate() {
   console.log("Fetching lora_trainings from Turso...");
   const loraRows = await tursoDb.selectFrom("lora_trainings").selectAll().execute();
   console.log(`  Found ${loraRows.length} rows`);
+  let loraUpsertedCount = 0;
 
   if (loraRows.length > 0) {
-    // Clear existing data (idempotent re-run)
-    await mongoDb.collection("lora_trainings").deleteMany({});
-    console.log("  Cleared existing lora_trainings in MongoDB");
+    const loraDocs = [];
+    for (const row of loraRows) {
+      let imageUrls: string[];
+      try {
+        imageUrls = JSON.parse(row.image_urls) as string[];
+      } catch {
+        console.warn(`  ⚠️  Skipping lora_trainings row ${row.id}: malformed image_urls JSON`);
+        continue;
+      }
+      loraDocs.push({
+        _id: row.id,
+        requestId: row.request_id,
+        walletAddress: row.wallet_address,
+        triggerWord: row.trigger_word,
+        steps: row.steps,
+        imageUrls,
+        loraWeightsUrl: row.lora_weights_url,
+        arenaChannelUrl: row.arena_channel_url,
+        arenaChannelTitle: row.arena_channel_title,
+        status: row.status,
+        createdAt: row.created_at,
+      });
+    }
 
-    const loraDocs = loraRows.map((row) => ({
-      _id: row.id,
-      requestId: row.request_id,
-      walletAddress: row.wallet_address,
-      triggerWord: row.trigger_word,
-      steps: row.steps,
-      imageUrls: JSON.parse(row.image_urls) as string[],
-      loraWeightsUrl: row.lora_weights_url,
-      arenaChannelUrl: row.arena_channel_url,
-      arenaChannelTitle: row.arena_channel_title,
-      status: row.status,
-      createdAt: row.created_at,
-    }));
-
-    await mongoDb.collection("lora_trainings").insertMany(loraDocs);
-    console.log(`  ✅ Inserted ${loraDocs.length} lora_trainings`);
+    // Upsert by _id so re-running the script never deletes documents
+    // already written to MongoDB (e.g. by the app after cutover).
+    if (loraDocs.length > 0) {
+      await mongoDb.collection("lora_trainings").bulkWrite(
+        loraDocs.map((doc) => ({
+          replaceOne: { filter: { _id: doc._id }, replacement: doc, upsert: true },
+        })),
+      );
+    }
+    loraUpsertedCount = loraDocs.length;
+    console.log(`  ✅ Upserted ${loraDocs.length} lora_trainings`);
   }
 
   // ── Migrate generated_images ───────────────────────────────────
@@ -118,9 +134,6 @@ async function migrate() {
   console.log(`  Found ${imgRows.length} rows`);
 
   if (imgRows.length > 0) {
-    await mongoDb.collection("generated_images").deleteMany({});
-    console.log("  Cleared existing generated_images in MongoDB");
-
     const imgDocs = imgRows.map((row) => ({
       _id: row.id,
       loraTrainingId: row.lora_training_id,
@@ -137,8 +150,14 @@ async function migrate() {
       createdAt: row.created_at,
     }));
 
-    await mongoDb.collection("generated_images").insertMany(imgDocs);
-    console.log(`  ✅ Inserted ${imgDocs.length} generated_images`);
+    // Upsert by _id so re-running the script never deletes documents
+    // already written to MongoDB (e.g. by the app after cutover).
+    await mongoDb.collection("generated_images").bulkWrite(
+      imgDocs.map((doc) => ({
+        replaceOne: { filter: { _id: doc._id }, replacement: doc, upsert: true },
+      })),
+    );
+    console.log(`  ✅ Upserted ${imgDocs.length} generated_images`);
   }
 
   // ── Create indexes ────────────────────────────────────────────
@@ -156,7 +175,7 @@ async function migrate() {
 
   // ── Cleanup ────────────────────────────────────────────────────
   console.log("\n✅ Migration complete!");
-  console.log(`   lora_trainings: ${loraRows.length} documents`);
+  console.log(`   lora_trainings: ${loraUpsertedCount} documents`);
   console.log(`   generated_images: ${imgRows.length} documents`);
 
   await mongoClient.close();
