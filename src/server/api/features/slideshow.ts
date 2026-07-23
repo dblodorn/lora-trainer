@@ -25,16 +25,16 @@ export const slideshowRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
 
-      // 1. Random generated images via $sample
+      // 1. Random generated images via $sample — prefer cdnUrl, fallback to imageUrl
       const genDocs = await db
         .collection<GeneratedImageDoc>("generated_images")
-        .aggregate<Pick<GeneratedImageDoc, "imageUrl">>([
+        .aggregate<Pick<GeneratedImageDoc, "imageUrl" | "cdnUrl">>([
           { $sample: { size: input.count } },
-          { $project: { imageUrl: 1, _id: 0 } },
+          { $project: { imageUrl: 1, cdnUrl: 1, _id: 0 } },
         ])
         .toArray();
 
-      const genUrls = genDocs.map((d) => d.imageUrl);
+      const genUrls = genDocs.map((d) => d.cdnUrl ?? d.imageUrl);
 
       // 2. Random training rows (each has a native array of URLs)
       const trainingDocs = await db

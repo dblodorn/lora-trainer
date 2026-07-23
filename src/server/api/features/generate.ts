@@ -129,6 +129,7 @@ export const generateRouter = router({
       const savedImages: {
         id: string;
         imageUrl: string;
+        cdnUrl: string | null;
         width: number | null;
         height: number | null;
         seed: string | null;
@@ -144,12 +145,12 @@ export const generateRouter = router({
         const ext = contentType.includes("png") ? "png" : "jpg";
         const spacesKey = `lora-trainer/images/${input.loraTrainingId}/${id}.${ext}`;
 
-        let cdnUrl: string;
+        // Upload to DO Spaces — imageUrl stays as the FAL URL, cdnUrl is the Spaces copy
+        let cdnUrl: string | null = null;
         try {
           cdnUrl = await mirrorUrlToSpaces(image.url, spacesKey, contentType);
         } catch (err) {
-          console.error("Failed to mirror image to Spaces, using FAL URL:", err);
-          cdnUrl = image.url;
+          console.error("Failed to mirror image to Spaces:", err);
         }
 
         await db.collection<GeneratedImageDoc>("generated_images").insertOne({
@@ -157,7 +158,8 @@ export const generateRouter = router({
           loraTrainingId: input.loraTrainingId,
           walletAddress,
           prompt: input.prompt,
-          imageUrl: cdnUrl,
+          imageUrl: image.url,
+          cdnUrl,
           imageWidth: image.width ?? null,
           imageHeight: image.height ?? null,
           seed: result.seed != null ? String(result.seed) : null,
@@ -170,7 +172,8 @@ export const generateRouter = router({
 
         savedImages.push({
           id,
-          imageUrl: cdnUrl,
+          imageUrl: image.url,
+          cdnUrl,
           width: image.width ?? null,
           height: image.height ?? null,
           seed: result.seed != null ? String(result.seed) : null,
@@ -208,6 +211,7 @@ export const generateRouter = router({
         walletAddress: doc.walletAddress,
         prompt: doc.prompt,
         imageUrl: doc.imageUrl,
+        cdnUrl: doc.cdnUrl ?? null,
         width: doc.imageWidth,
         height: doc.imageHeight,
         seed: doc.seed,

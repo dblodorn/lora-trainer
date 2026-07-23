@@ -5,8 +5,14 @@ import { AnimatePresence, motion } from "framer-motion";
 interface SlideshowImage {
   id: string;
   imageUrl: string;
+  cdnUrl?: string | null;
   prompt: string;
   loraScaleName?: string | null;
+}
+
+/** Prefer CDN URL, fallback to original imageUrl */
+function displayUrl(img: SlideshowImage): string {
+  return img.cdnUrl ?? img.imageUrl;
 }
 
 interface SlideshowModalProps {
@@ -116,7 +122,7 @@ export default function SlideshowModal({
           <AnimatePresence mode="wait" custom={direction}>
             <motion.img
               key={current.id}
-              src={current.imageUrl}
+              src={displayUrl(current)}
               alt={current.prompt}
               custom={direction}
               variants={slideVariants}
