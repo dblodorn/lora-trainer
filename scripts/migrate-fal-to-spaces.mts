@@ -17,6 +17,7 @@ const s3 = new S3Client({
   endpoint: ENDPOINT,
   region: REGION,
   credentials: { accessKeyId: KEY, secretAccessKey: SECRET },
+  forcePathStyle: true,
 });
 
 async function uploadToSpaces(key: string, data: Buffer, contentType: string): Promise<string> {
@@ -53,9 +54,9 @@ function getDbNameFromUri(uri: string): string {
   try {
     const parsed = new URL(uri);
     const segments = parsed.pathname.split("/").filter(Boolean);
-    return segments.length > 0 ? segments[0] : "test";
+    return segments.length > 0 ? segments[0] : "lora-trainer";
   } catch {
-    return "test";
+    return "lora-trainer";
   }
 }
 

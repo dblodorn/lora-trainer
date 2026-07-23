@@ -13,7 +13,7 @@ function getClient(): S3Client {
       accessKeyId: cfg.key,
       secretAccessKey: cfg.secret,
     },
-    forcePathStyle: false,
+    forcePathStyle: true,
   });
   return _client;
 }
