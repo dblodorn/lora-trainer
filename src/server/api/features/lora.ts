@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
 import { getDb, LoraTrainingDoc } from "../db";
+import { mirrorUrlToSpaces } from "./storage";
 import crypto from "node:crypto";
 
 function generateId(): string {
@@ -17,6 +18,8 @@ export async function createPendingLora(params: {
   triggerWord: string;
   steps: number;
   imageUrls: string[];
+  imageUrlsSpaces?: string[];
+  trainingZipUrl?: string | null;
   arenaChannelUrl?: string;
   arenaChannelTitle?: string;
 }): Promise<{ id: string }> {
@@ -29,6 +32,8 @@ export async function createPendingLora(params: {
     triggerWord: params.triggerWord,
     steps: params.steps,
     imageUrls: params.imageUrls,
+    imageUrlsSpaces: params.imageUrlsSpaces ?? [],
+    trainingZipUrl: params.trainingZipUrl ?? null,
     loraWeightsUrl: null,
     arenaChannelUrl: params.arenaChannelUrl ?? null,
     arenaChannelTitle: params.arenaChannelTitle ?? null,
@@ -72,14 +77,61 @@ export const loraRouter = router({
         return { success: true };
       }
 
+      // Mirror LoRA weights to DO Spaces
+      const loraId = existing._id;
+      const weightsExt = input.loraWeightsUrl.endsWith(".safetensors")
+        ? "safetensors"
+        : "bin";
+      const spacesKey = `lora-trainer/loras/${loraId}/${loraId}.${weightsExt}`;
+
+      let cdnUrl: string;
+      try {
+        cdnUrl = await mirrorUrlToSpaces(
+          input.loraWeightsUrl,
+          spacesKey,
+          "application/octet-stream",
+        );
+      } catch (err) {
+        console.error("Failed to mirror LoRA weights to Spaces, using FAL URL:", err);
+        cdnUrl = input.loraWeightsUrl;
+      }
+
+      // Backfill training images if not yet mirrored to Spaces
+      let imageUrlsSpaces: string[] = existing.imageUrlsSpaces ?? [];
+      if (
+        imageUrlsSpaces.length === 0 &&
+        existing.imageUrls &&
+        existing.imageUrls.length > 0
+      ) {
+        try {
+          const mirrorPromises = existing.imageUrls.map((url, index) => {
+            const filename =
+              url.split("/").pop()?.split("?")[0] || `image_${index}.jpg`;
+            const ext = /\.(jpg|jpeg|png|gif|webp)$/i.test(filename) ? "" : ".jpg";
+            const key = `lora-trainer/training-images/${existing._id}/${index + 1}_${filename}${ext}`;
+            return mirrorUrlToSpaces(url, key, "image/jpeg").catch(() => null);
+          });
+          const results = await Promise.all(mirrorPromises);
+          imageUrlsSpaces = results.filter((r): r is string => r !== null);
+          console.log(
+            `Backfilled ${imageUrlsSpaces.length}/${existing.imageUrls.length} training images to Spaces`,
+          );
+        } catch (err) {
+          console.error("Failed to backfill training images:", err);
+        }
+      }
+
+      const updateFields: Record<string, unknown> = {
+        loraWeightsUrl: cdnUrl,
+        status: "completed",
+      };
+      if (imageUrlsSpaces.length > 0) {
+        updateFields.imageUrlsSpaces = imageUrlsSpaces;
+      }
+
       await db.collection<LoraTrainingDoc>("lora_trainings").updateOne(
         { _id: existing._id },
-        {
-          $set: {
-            loraWeightsUrl: input.loraWeightsUrl,
-            status: "completed",
-          },
-        },
+        { $set: updateFields },
       );
 
       return { success: true };
@@ -100,7 +152,6 @@ export const loraRouter = router({
           message: "LoRA not found.",
         });
       }
-
       return {
         id: doc._id,
         requestId: doc.requestId,
@@ -108,6 +159,8 @@ export const loraRouter = router({
         triggerWord: doc.triggerWord,
         steps: doc.steps,
         imageUrls: doc.imageUrls,
+        imageUrlsSpaces: doc.imageUrlsSpaces ?? [],
+        trainingZipUrl: doc.trainingZipUrl ?? null,
         loraWeightsUrl: doc.loraWeightsUrl,
         arenaChannelUrl: doc.arenaChannelUrl,
         arenaChannelTitle: doc.arenaChannelTitle,
@@ -132,6 +185,8 @@ export const loraRouter = router({
         triggerWord: doc.triggerWord,
         steps: doc.steps,
         imageUrls: doc.imageUrls,
+        imageUrlsSpaces: doc.imageUrlsSpaces ?? [],
+        trainingZipUrl: doc.trainingZipUrl ?? null,
         loraWeightsUrl: doc.loraWeightsUrl,
         arenaChannelUrl: doc.arenaChannelUrl,
         arenaChannelTitle: doc.arenaChannelTitle,

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { requireFalApiKey, getTrainingPriceUsd, getAdminWallet } from "../env";
+import { getDb } from "../db";
 import { fal } from "@fal-ai/client";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
@@ -16,6 +17,7 @@ import {
   sendRefund,
 } from "./payment";
 import { createPendingLora } from "./lora";
+import { uploadToSpaces, mirrorUrlToSpaces } from "./storage";
 
 // Configure fal client lazily — credentials are validated per-request
 function ensureFalConfigured() {
@@ -457,6 +459,51 @@ export const falRouter = router({
         } catch (dbError) {
           // Log but don't fail the training — the client can still complete it
           console.error("Failed to create pending lora record:", dbError);
+        }
+
+        // Mirror training images and zip to DO Spaces (non-blocking — don't fail training if this fails)
+        if (loraId) {
+          // Persist training zip to Spaces
+          try {
+            const zipSpacesKey = `lora-trainer/training-zips/${loraId}/${loraId}.zip`;
+            const trainingZipUrl = await uploadToSpaces(zipSpacesKey, zipBuffer, "application/zip");
+            console.log(`Training zip mirrored to Spaces: ${trainingZipUrl}`);
+
+            // Update the pending record with the zip URL
+            const db = await getDb();
+            await db.collection("lora_trainings").updateOne(
+              { _id: loraId as never },
+              { $set: { trainingZipUrl } },
+            );
+          } catch (err) {
+            console.error("Failed to upload training zip to Spaces:", err);
+          }
+
+          // Mirror training source images to Spaces
+          try {
+            const mirrorPromises = input.imageUrls.map((url, index) => {
+              const filename = url.split("/").pop()?.split("?")[0] || `image_${index}.jpg`;
+              const ext = /\.(jpg|jpeg|png|gif|webp)$/i.test(filename) ? "" : ".jpg";
+              const spacesKey = `lora-trainer/training-images/${loraId}/${index + 1}_${filename}${ext}`;
+              return mirrorUrlToSpaces(url, spacesKey, "image/jpeg").catch((err) => {
+                console.error(`Failed to mirror training image ${index}:`, err);
+                return null;
+              });
+            });
+            const results = await Promise.all(mirrorPromises);
+            const imageUrlsSpaces = results.filter((r): r is string => r !== null);
+            console.log(`Mirrored ${imageUrlsSpaces.length}/${input.imageUrls.length} training images to Spaces`);
+
+            if (imageUrlsSpaces.length > 0) {
+              const db = await getDb();
+              await db.collection("lora_trainings").updateOne(
+                { _id: loraId as never },
+                { $set: { imageUrlsSpaces } },
+              );
+            }
+          } catch (err) {
+            console.error("Failed to mirror training images to Spaces:", err);
+          }
         }
 
         return {
