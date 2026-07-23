@@ -48,26 +48,37 @@ function isAlreadyOnSpaces(url: string): boolean {
   return !!url && url.includes("digitaloceanspaces.com");
 }
 
-async function main() {
-  const client = new MongoClient(process.env.MONGODB_URI!);
-  await client.connect();
-  const db = client.db();
+/** Extract db name from MongoDB URI path */
+function getDbNameFromUri(uri: string): string {
+  try {
+    const parsed = new URL(uri);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    return segments.length > 0 ? segments[0] : "test";
+  } catch {
+    return "test";
+  }
+}
 
-  // ── 1. Migrate generated_images.imageUrl ──────────────────────
-  console.log("\n=== Migrating generated images ===");
+async function main() {
+  const uri = process.env.MONGODB_URI!;
+  const dbName = getDbNameFromUri(uri);
+  console.log(`Using MongoDB database: ${dbName}`);
+
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db(dbName);
+
+  // ── 1. Populate cdnUrl for generated_images ──────────────────
+  console.log("\n=== Migrating generated images (populating cdnUrl) ===");
   const images = db.collection("generated_images");
-  const imageDocs = await images.find({}).toArray();
-  console.log(`Found ${imageDocs.length} generated images`);
+  const imageDocs = await images.find({ cdnUrl: { $in: [null, undefined] } }).toArray();
+  console.log(`Found ${imageDocs.length} images without cdnUrl`);
 
   let imgMigrated = 0,
     imgSkipped = 0,
     imgFailed = 0;
   for (const doc of imageDocs) {
-    if (isAlreadyOnSpaces(doc.imageUrl)) {
-      imgSkipped++;
-      continue;
-    }
-    if (!isFalUrl(doc.imageUrl)) {
+    if (doc.cdnUrl && isAlreadyOnSpaces(doc.cdnUrl)) {
       imgSkipped++;
       continue;
     }
@@ -75,7 +86,7 @@ async function main() {
       const ext = doc.imageUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[0]?.toLowerCase() ?? ".jpg";
       const key = `lora-trainer/images/${doc.loraTrainingId}/${doc._id}${ext}`;
       const cdnUrl = await mirrorUrlToSpaces(doc.imageUrl, key, "image/jpeg");
-      await images.updateOne({ _id: doc._id }, { $set: { imageUrl: cdnUrl } });
+      await images.updateOne({ _id: doc._id }, { $set: { cdnUrl } });
       imgMigrated++;
       if (imgMigrated % 10 === 0) console.log(`  ✓ ${imgMigrated} images migrated...`);
     } catch (err) {
@@ -85,7 +96,7 @@ async function main() {
   }
   console.log(`Images: ${imgMigrated} migrated, ${imgSkipped} skipped, ${imgFailed} failed`);
 
-  // ── 2. Migrate lora_trainings.loraWeightsUrl ──────────────────
+  // ── 2. Migrate lora_trainings.loraWeightsUrl → cdnUrl ─────────
   console.log("\n=== Migrating LoRA weights ===");
   const loras = db.collection("lora_trainings");
   const loraDocs = await loras
@@ -128,7 +139,6 @@ async function main() {
     trainImgSkipped = 0,
     trainImgFailed = 0;
   for (const doc of allLoraDocs) {
-    // Skip if already has imageUrlsSpaces
     if (doc.imageUrlsSpaces && doc.imageUrlsSpaces.length > 0) {
       trainImgSkipped++;
       continue;

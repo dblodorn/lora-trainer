@@ -27,6 +27,7 @@ export interface GeneratedImageDoc {
   walletAddress: string;
   prompt: string;
   imageUrl: string;
+  cdnUrl: string | null;
   imageWidth: number | null;
   imageHeight: number | null;
   seed: string | null;
@@ -56,9 +57,22 @@ export async function getDb(): Promise<Db> {
     );
   }
 
+  // Extract db name from URI path (e.g. mongodb+srv://user:pass@host/dbname?params)
+  // Falls back to "test" if not present — same as driver default
+  let dbName = "test";
+  try {
+    const parsed = new URL(uri);
+    const pathSegments = parsed.pathname.split("/").filter(Boolean);
+    if (pathSegments.length > 0) {
+      dbName = pathSegments[0];
+    }
+  } catch {
+    // If URL parsing fails, use default
+  }
+
   _client = new MongoClient(uri);
   await _client.connect();
-  _db = _client.db();
+  _db = _client.db(dbName);
 
   if (!_indexesEnsured) {
     await ensureIndexes(_db);

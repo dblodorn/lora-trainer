@@ -4,11 +4,17 @@ import { View, Text, Card, Badge } from "reshaped";
 interface GeneratedImage {
   id: string;
   imageUrl: string;
+  cdnUrl?: string | null;
   prompt: string;
   createdAt: string;
   width?: number | null;
   height?: number | null;
   loraScaleName?: string | null;
+}
+
+/** Prefer CDN URL, fallback to original imageUrl */
+function displayUrl(img: GeneratedImage): string {
+  return img.cdnUrl ?? img.imageUrl;
 }
 
 interface GeneratedImageGridProps {
@@ -67,7 +73,7 @@ export default function GeneratedImageGrid({
                 >
                   {/* Cover image (always visible, fades out on hover) */}
                   <img
-                    src={img.imageUrl}
+                    src={displayUrl(img)}
                     alt={img.prompt}
                     style={{
                       position: "absolute",
@@ -82,7 +88,7 @@ export default function GeneratedImageGrid({
                   />
                   {/* Contain image (fades in on hover) */}
                   <img
-                    src={img.imageUrl}
+                    src={displayUrl(img)}
                     alt={img.prompt}
                     style={{
                       position: "absolute",
@@ -115,13 +121,13 @@ export default function GeneratedImageGrid({
             </div>
           ) : (
             <a
-              href={img.imageUrl}
+              href={displayUrl(img)}
               target="_blank"
               rel="noopener noreferrer"
             >
               <Card padding={0}>
                 <img
-                  src={img.imageUrl}
+                  src={displayUrl(img)}
                   alt={img.prompt}
                   style={{
                     aspectRatio: "1",
