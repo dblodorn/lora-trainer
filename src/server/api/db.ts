@@ -58,8 +58,8 @@ export async function getDb(): Promise<Db> {
   }
 
   // Extract db name from URI path (e.g. mongodb+srv://user:pass@host/dbname?params)
-  // Falls back to "test" if not present — same as driver default
-  let dbName = "test";
+  // The MongoDB driver defaults to "test" if not specified, but our data lives in "lora-trainer"
+  let dbName = "lora-trainer";
   try {
     const parsed = new URL(uri);
     const pathSegments = parsed.pathname.split("/").filter(Boolean);
