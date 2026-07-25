@@ -97,7 +97,7 @@ async function main() {
   }
   console.log(`Images: ${imgMigrated} migrated, ${imgSkipped} skipped, ${imgFailed} failed`);
 
-  // ── 2. Migrate lora_trainings.loraWeightsUrl → cdnUrl ─────────
+  // ── 2. Migrate lora_trainings.loraWeightsUrl → Spaces ─────────
   console.log("\n=== Migrating LoRA weights ===");
   const loras = db.collection("lora_trainings");
   const loraDocs = await loras
@@ -109,18 +109,58 @@ async function main() {
     loraSkipped = 0,
     loraFailed = 0;
   for (const doc of loraDocs) {
+    // Check if the current weights URL is a working Spaces URL
     if (isAlreadyOnSpaces(doc.loraWeightsUrl)) {
-      loraSkipped++;
-      continue;
+      // Verify the Spaces URL actually works
+      try {
+        const check = await fetch(doc.loraWeightsUrl, { method: "HEAD" });
+        if (check.ok) {
+          loraSkipped++;
+          continue;
+        }
+        console.log(`  ! ${doc._id}: Spaces URL returns ${check.status}, needs re-migration`);
+      } catch {
+        console.log(`  ! ${doc._id}: Spaces URL unreachable, needs re-migration`);
+      }
     }
-    if (!isFalUrl(doc.loraWeightsUrl)) {
-      loraSkipped++;
-      continue;
+
+    // Determine the source URL to mirror from
+    let sourceUrl = doc.loraWeightsUrl;
+    if (!isFalUrl(sourceUrl)) {
+      // The URL was overwritten — try to recover from FAL using the request ID
+      if (doc.requestId && process.env.FAL_AI_API_KEY) {
+        try {
+          const { fal } = await import("@fal-ai/client");
+          fal.config({ credentials: process.env.FAL_AI_API_KEY });
+          const result = await fal.queue.result("fal-ai/flux-lora-fast-training", {
+            requestId: doc.requestId,
+          });
+          // The diff_url field contains the weights URL
+          const diffUrl = (result.data as any)?.diffusers_lora_file?.url;
+          if (diffUrl) {
+            sourceUrl = diffUrl;
+            console.log(`  ↳ Recovered FAL URL for ${doc._id}: ${sourceUrl.substring(0, 60)}...`);
+          } else {
+            console.error(`  ✗ ${doc._id}: FAL result has no diff_url`);
+            loraFailed++;
+            continue;
+          }
+        } catch (err) {
+          console.error(`  ✗ ${doc._id}: Failed to recover from FAL: ${err}`);
+          loraFailed++;
+          continue;
+        }
+      } else {
+        console.error(`  ✗ ${doc._id}: URL is not FAL and no FAL key/requestId to recover`);
+        loraFailed++;
+        continue;
+      }
     }
+
     try {
-      const ext = doc.loraWeightsUrl.endsWith(".safetensors") ? ".safetensors" : ".bin";
+      const ext = sourceUrl.endsWith(".safetensors") ? ".safetensors" : ".bin";
       const key = `lora-trainer/loras/${doc._id}/${doc._id}${ext}`;
-      const cdnUrl = await mirrorUrlToSpaces(doc.loraWeightsUrl, key, "application/octet-stream");
+      const cdnUrl = await mirrorUrlToSpaces(sourceUrl, key, "application/octet-stream");
       await loras.updateOne({ _id: doc._id }, { $set: { loraWeightsUrl: cdnUrl } });
       loraMigrated++;
       console.log(`  ✓ ${doc._id}: weights migrated`);
