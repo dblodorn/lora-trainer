@@ -6,8 +6,20 @@ let _client: S3Client | null = null;
 function getClient(): S3Client {
   if (_client) return _client;
   const cfg = requireSpacesConfig();
+
+  // When using forcePathStyle, the SDK puts the bucket in the URL path.
+  // The endpoint must NOT include the bucket name — otherwise it gets doubled.
+  // e.g. endpoint="https://dmbk-io.sfo2.digitaloceanspaces.com" + bucket="dmbk-io"
+  //   → bad path: /dmbk-io/lora-trainer/...
+  // We strip the bucket subdomain from the endpoint to get the base: https://sfo2.digitaloceanspaces.com
+  let endpoint = cfg.endpoint;
+  const bucketSubdomain = `${cfg.bucket}.`;
+  if (endpoint.includes(bucketSubdomain)) {
+    endpoint = endpoint.replace(bucketSubdomain, "");
+  }
+
   _client = new S3Client({
-    endpoint: cfg.endpoint,
+    endpoint,
     region: cfg.region,
     credentials: {
       accessKeyId: cfg.key,
