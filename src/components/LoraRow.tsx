@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { View, Text, Button, Image, Link } from "reshaped";
+import { View, Text, Button, Link } from "reshaped";
 import NextLink from "next/link";
+import NextImage from "next/image";
 
 interface LoraRowProps {
   id: string;
@@ -57,15 +58,25 @@ export default function LoraRow({
       {/* Thumbnails */}
       <View direction="row" gap={1} align="center">
         {visibleImages.map((url, i) => (
-          <Image
+          <div
             key={i}
-            src={url}
-            alt=""
-            width="48px"
-            height="48px"
-            displayMode="cover"
-            borderRadius="small"
-          />
+            style={{
+              position: "relative",
+              width: 48,
+              height: 48,
+              borderRadius: "var(--rs-radius-small)",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            <NextImage
+              src={url}
+              alt=""
+              fill
+              sizes="48px"
+              style={{ objectFit: "cover" }}
+            />
+          </div>
         ))}
         {overflow > 0 && (
           <Text variant="caption-1" color="neutral-faded">

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, Card, Badge } from "reshaped";
+import NextImage from "next/image";
 
 interface GeneratedImage {
   id: string;
@@ -71,35 +72,12 @@ export default function GeneratedImageGrid({
                     borderRadius: "var(--rs-radius-medium)",
                   }}
                 >
-                  {/* Cover image (always visible, fades out on hover) */}
-                  <img
+                  <NextImage
                     src={displayUrl(img)}
                     alt={img.prompt}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block",
-                      transition: "opacity 0.2s ease",
-                      opacity: hoveredId === img.id ? 0 : 1,
-                    }}
-                  />
-                  {/* Contain image (fades in on hover) */}
-                  <img
-                    src={displayUrl(img)}
-                    alt={img.prompt}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      display: "block",
-                      transition: "opacity 0.2s ease",
-                      opacity: hoveredId === img.id ? 1 : 0,
-                    }}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    style={{ objectFit: hoveredId === img.id ? "contain" : "cover" }}
                   />
                 </div>
                 <View padding={2} gap={1}>
@@ -126,17 +104,23 @@ export default function GeneratedImageGrid({
               rel="noopener noreferrer"
             >
               <Card padding={0}>
-                <img
-                  src={displayUrl(img)}
-                  alt={img.prompt}
+                <div
                   style={{
-                    aspectRatio: "1",
-                    objectFit: "cover",
-                    display: "block",
+                    position: "relative",
                     width: "100%",
+                    aspectRatio: "1",
+                    overflow: "hidden",
                     borderRadius: "var(--rs-radius-medium)",
                   }}
-                />
+                >
+                  <NextImage
+                    src={displayUrl(img)}
+                    alt={img.prompt}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 50vw"
+                    style={{ objectFit: "cover" }}
+                  />
+                </div>
                 {variant === "page" && (
                   <View padding={2} gap={1}>
                     <Text variant="caption-1" maxLines={2}>
