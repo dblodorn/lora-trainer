@@ -13,8 +13,14 @@ const SECRET = process.env.DO_SPACES_SECRET!;
 const BUCKET = process.env.DO_SPACES_BUCKET!;
 const CDN_URL = process.env.DO_SPACES_CDN_URL!;
 
+// Strip bucket name from endpoint if present (forcePathStyle requires clean endpoint)
+let S3_ENDPOINT = ENDPOINT;
+if (S3_ENDPOINT.includes(`${BUCKET}.`)) {
+  S3_ENDPOINT = S3_ENDPOINT.replace(`${BUCKET}.`, "");
+}
+
 const s3 = new S3Client({
-  endpoint: ENDPOINT,
+  endpoint: S3_ENDPOINT,
   region: REGION,
   credentials: { accessKeyId: KEY, secretAccessKey: SECRET },
   forcePathStyle: true,
