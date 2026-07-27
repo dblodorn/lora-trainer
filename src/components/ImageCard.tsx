@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Actionable, Card, Checkbox, Image, Text, Link, View } from "reshaped";
+import { Actionable, Card, Checkbox, Text, Link, View } from "reshaped";
+import NextImage from "next/image";
 import type { ArenaImage } from "./types";
 
 interface ImageCardProps {
@@ -49,19 +50,19 @@ export default function ImageCard({
               style: {
                 width: "100%",
                 height: "100%",
+                position: "relative",
+                opacity: !canSelect ? 0.5 : 1,
               },
             }}
           >
-            <Image
+            <NextImage
               src={imageUrl}
               alt={image.title || "Untitled"}
-              width="100%"
-              height="100%"
-              displayMode={isHovered ? "contain" : "cover"}
-              attributes={{
-                style: {
-                  opacity: !canSelect ? 0.5 : 1,
-                },
+              fill
+              sizes="(max-width: 768px) 50vw, 33vw"
+              style={{
+                objectFit: isHovered ? "contain" : "cover",
+                transition: "object-fit 0.2s ease",
               }}
             />
           </Actionable>

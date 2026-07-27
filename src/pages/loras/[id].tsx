@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { View, Text, Button, Alert, Loader, Image } from "reshaped";
+import { View, Text, Button, Alert, Loader } from "reshaped";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import { trpc } from "@/utils/trpc";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
@@ -119,15 +120,25 @@ export default function LoraDetailPage() {
           {/* Training image thumbnails */}
           <View direction="row" gap={1} wrap>
             {lora.imageUrls.slice(0, 8).map((url, i) => (
-              <Image
+              <div
                 key={i}
-                src={url}
-                alt=""
-                width="56px"
-                height="56px"
-                displayMode="cover"
-                borderRadius="small"
-              />
+                style={{
+                  position: "relative",
+                  width: 56,
+                  height: 56,
+                  borderRadius: "var(--rs-radius-small)",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}
+              >
+                <NextImage
+                  src={url}
+                  alt=""
+                  fill
+                  sizes="56px"
+                  style={{ objectFit: "cover" }}
+                />
+              </div>
             ))}
             {lora.imageUrls.length > 8 && (
               <View
