@@ -150,10 +150,19 @@ export default function LoraDetailPage() {
           </View>
         </View>
 
+        {/* Divider */}
+        <View
+          attributes={{
+            style: {
+              width: "100%",
+              height: "1px",
+              backgroundColor: "var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+            },
+          }}
+        />
+
         {/* Generated Images Gallery */}
         <View gap={3}>
-          <Text variant="title-3">Generated Images</Text>
-
           {imagesQuery.isLoading && (
             <View align="center" padding={6}>
               <Loader />
