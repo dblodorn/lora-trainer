@@ -519,9 +519,15 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
 
   // ---------------------------------------------------------------------------
   // Animation loop — starts once initial data arrives
-  // ---------------------------------------------------------------------------
+  // Animation loop — starts once images are available
+  // (either from tRPC fetch or from custom images prop)
   useEffect(() => {
-    if (!initialData?.urls || initialData.urls.length < 2) return;
+    // In custom mode, boot as soon as the queue is seeded
+    if (isCustomMode) {
+      if (queueRef.current.length === 0) return;
+    } else {
+      if (!initialData?.urls || initialData.urls.length < 2) return;
+    }
 
     const gl = glRef.current;
     if (!gl || !programRef.current) return;
@@ -726,7 +732,7 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
       cancelled = true;
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [initialData, getNextUrl]);
+  }, [initialData, getNextUrl, images, isCustomMode]);
 
   return (
     <div
