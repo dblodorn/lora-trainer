@@ -14,7 +14,6 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
           style: {
             cursor: "pointer",
             width: "100%",
-            height: "100%",
             borderRadius: "var(--rs-radius-medium)",
             border: "2px dashed var(--rs-color-border-neutral-faded, rgba(0,0,0,0.12))",
             display: "flex",
@@ -24,25 +23,14 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
           },
         }}
       >
-        {/* Top padding to offset for caption area height */}
-        <View padding={2} gap={1}>
-          <Text variant="caption-1" attributes={{ style: { visibility: "hidden" } }}>
-            placeholder
-          </Text>
-          <View direction="row" align="center" gap={2}>
-            <Text variant="caption-1" color="neutral-faded" attributes={{ style: { visibility: "hidden" } }}>
-              placeholder
-            </Text>
-          </View>
-        </View>
-        {/* Canvas fills the remaining space of the tile */}
+        {/* Canvas area — same aspect ratio as image tiles */}
         <View
-          grow
           attributes={{
             style: {
+              width: "100%",
+              aspectRatio: "1",
               position: "relative",
-              flex: 1,
-              minHeight: 0,
+              overflow: "hidden",
             },
           }}
         >
@@ -79,6 +67,17 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
                 Generate Images
               </Text>
             </View>
+          </View>
+        </View>
+        {/* Caption area — matches image tile caption height */}
+        <View padding={2} gap={1}>
+          <Text variant="caption-1" attributes={{ style: { visibility: "hidden" } }}>
+            placeholder
+          </Text>
+          <View direction="row" align="center" gap={2}>
+            <Text variant="caption-1" color="neutral-faded" attributes={{ style: { visibility: "hidden" } }}>
+              placeholder
+            </Text>
           </View>
         </View>
       </Actionable>
