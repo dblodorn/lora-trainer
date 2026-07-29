@@ -76,7 +76,6 @@ export default function LoraDetailPage() {
   return (
     <View height="100vh" direction="column" attributes={{ style: { width: `calc(100% - ${NAV_WIDTH}px)` } }}>
       <View
-        gap={6}
         attributes={{ style: { flex: 1, overflowY: "auto" } }}
       >
         {/* Header */}
