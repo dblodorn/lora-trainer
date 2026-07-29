@@ -7,6 +7,7 @@ import { trpc } from "@/utils/trpc";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
+import ArenaChannelBadge from "@/components/ArenaChannelBadge";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
@@ -103,6 +104,12 @@ export default function LoraDetailPage() {
                     {formatDate(lora.createdAt)}
                   </Text>
                 </View>
+                {lora.arenaChannelUrl && lora.arenaChannelTitle && (
+                  <ArenaChannelBadge
+                    title={lora.arenaChannelTitle}
+                    url={lora.arenaChannelUrl}
+                  />
+                )}
               </View>
             </View.Item>
 
