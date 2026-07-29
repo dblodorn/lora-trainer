@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, Button, Link } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import ArenaChannelBadge from "./ArenaChannelBadge";
 
 interface LoraRowProps {
   id: string;
@@ -100,15 +101,11 @@ export default function LoraRow({
           <Text variant="caption-1" color="neutral-faded">
             {formatDate(createdAt)}
           </Text>
-          {arenaChannelUrl && (
-            <Link
-              href={arenaChannelUrl}
-              attributes={{ target: "_blank", rel: "noopener noreferrer" }}
-            >
-              <Text variant="caption-1" color="neutral-faded">
-                {arenaChannelTitle || "Are.na channel"}
-              </Text>
-            </Link>
+          {arenaChannelUrl && arenaChannelTitle && (
+            <ArenaChannelBadge
+              title={arenaChannelTitle}
+              url={arenaChannelUrl}
+            />
           )}
         </View>
       </View.Item>
