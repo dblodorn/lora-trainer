@@ -9,6 +9,7 @@ import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
 import ArenaChannelBadge from "@/components/ArenaChannelBadge";
 import TrainingImagesBadge from "@/components/TrainingImagesBadge";
+import GenerateImagesTile from "@/components/GenerateImagesTile";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
@@ -115,14 +116,6 @@ export default function LoraDetailPage() {
               </View>
             </View.Item>
 
-            {isCompleted && (
-              <Button
-                color="primary"
-                onClick={() => setShowGenerateModal(true)}
-              >
-                Generate Images
-              </Button>
-            )}
           </View>
 
           {/* Training image thumbnails */}
@@ -165,35 +158,16 @@ export default function LoraDetailPage() {
             </View>
           )}
 
-          {images.length === 0 && !imagesQuery.isLoading && (
-            <View
-              align="center"
-              padding={8}
-              borderRadius="medium"
-              backgroundColor="elevation-raised"
-            >
-              <View gap={2} align="center">
-                <Text variant="body-1" color="neutral-faded">
-                  No images generated yet.
-                </Text>
-                {isCompleted && (
-                  <Button
-                    color="primary"
-                    size="small"
-                    onClick={() => setShowGenerateModal(true)}
-                  >
-                    Generate your first images
-                  </Button>
-                )}
-              </View>
-            </View>
-          )}
-
-          {images.length > 0 && (
+          {!imagesQuery.isLoading && (
             <GeneratedImageGrid
               images={images}
               variant="page"
               onImageClick={(index) => setSlideshowIndex(index)}
+              prependTile={
+                isCompleted ? (
+                  <GenerateImagesTile onClick={() => setShowGenerateModal(true)} />
+                ) : null
+              }
             />
           )}
         </View>
