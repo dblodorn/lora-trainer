@@ -17,6 +17,7 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
           },
         }}
       >
+        {/* Dashed area matches the image square */}
         <View
           align="center"
           justify="center"
@@ -38,6 +39,17 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
             </Text>
             <Text variant="body-2" color="neutral-faded">
               Generate Images
+            </Text>
+          </View>
+        </View>
+        {/* Empty caption area to match image tile height */}
+        <View padding={2} gap={1} attributes={{ style: { minHeight: "auto" } }}>
+          <Text variant="caption-1" attributes={{ style: { visibility: "hidden" } }}>
+            placeholder
+          </Text>
+          <View direction="row" align="center" gap={2}>
+            <Text variant="caption-1" color="neutral-faded" attributes={{ style: { visibility: "hidden" } }}>
+              placeholder
             </Text>
           </View>
         </View>
