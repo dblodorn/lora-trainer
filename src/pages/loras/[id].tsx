@@ -7,6 +7,8 @@ import { trpc } from "@/utils/trpc";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
+import ArenaChannelBadge from "@/components/ArenaChannelBadge";
+import TrainingImagesBadge from "@/components/TrainingImagesBadge";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
@@ -23,6 +25,7 @@ export default function LoraDetailPage() {
   const id = router.query.id as string | undefined;
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [slideshowIndex, setSlideshowIndex] = useState<number | null>(null);
+  const [trainingSlideshowIndex, setTrainingSlideshowIndex] = useState<number | null>(null);
 
   const loraQuery = trpc.lora.getById.useQuery(
     { id: id! },
@@ -76,24 +79,22 @@ export default function LoraDetailPage() {
   return (
     <View height="100vh" direction="column" attributes={{ style: { width: `calc(100% - ${NAV_WIDTH}px)` } }}>
       <View
-        padding={4}
-        gap={6}
         attributes={{ style: { flex: 1, overflowY: "auto" } }}
       >
         {/* Header */}
-        <View gap={4}>
-          <View direction="row" align="center" gap={2}>
-            <NextLink href="/loras" passHref legacyBehavior>
-              <Button as="a" variant="ghost" size="small">
-                &larr; Gallery
-              </Button>
-            </NextLink>
-          </View>
-
+        <View
+          padding={4}
+          gap={4}
+          attributes={{
+            style: {
+              borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+            },
+          }}
+        >
           <View direction="row" align="center" gap={4}>
             <View.Item grow>
               <View gap={1}>
-                <Text variant="title-1">{lora.triggerWord}</Text>
+                <Text variant="body-1" weight="bold">{lora.triggerWord}</Text>
                 <View direction="row" gap={3}>
                   <Text variant="body-2" color="neutral-faded">
                     {lora.steps} steps
@@ -105,6 +106,12 @@ export default function LoraDetailPage() {
                     {formatDate(lora.createdAt)}
                   </Text>
                 </View>
+                {lora.arenaChannelUrl && lora.arenaChannelTitle && (
+                  <ArenaChannelBadge
+                    title={lora.arenaChannelTitle}
+                    url={lora.arenaChannelUrl}
+                  />
+                )}
               </View>
             </View.Item>
 
@@ -119,7 +126,7 @@ export default function LoraDetailPage() {
           </View>
 
           {/* Training image thumbnails */}
-          <View direction="row" gap={1} wrap>
+          <View direction="row" gap={1} wrap align="center">
             {lora.imageUrls.slice(0, 8).map((url, i) => (
               <div
                 key={i}
@@ -141,27 +148,17 @@ export default function LoraDetailPage() {
                 />
               </div>
             ))}
-            {lora.imageUrls.length > 8 && (
-              <View
-                width="56px"
-                height="56px"
-                align="center"
-                justify="center"
-                borderRadius="small"
-                backgroundColor="elevation-raised"
-              >
-                <Text variant="caption-1" color="neutral-faded">
-                  +{lora.imageUrls.length - 8}
-                </Text>
-              </View>
-            )}
+            <View paddingStart={2}>
+              <TrainingImagesBadge
+                count={lora.imageUrls.length > 8 ? lora.imageUrls.length - 8 : 0}
+                onClick={() => setTrainingSlideshowIndex(0)}
+              />
+            </View>
           </View>
         </View>
 
         {/* Generated Images Gallery */}
-        <View gap={3}>
-          <Text variant="title-3">Generated Images</Text>
-
+        <View gap={3} padding={4}>
           {imagesQuery.isLoading && (
             <View align="center" padding={6}>
               <Loader />
@@ -219,6 +216,21 @@ export default function LoraDetailPage() {
           onClose={() => setSlideshowIndex(null)}
           images={images}
           startIndex={slideshowIndex ?? 0}
+        />
+      )}
+
+      {/* Training Images Slideshow Modal */}
+      {trainingSlideshowIndex !== null && (
+        <SlideshowModal
+          active={trainingSlideshowIndex !== null}
+          onClose={() => setTrainingSlideshowIndex(null)}
+          images={lora.imageUrls.map((url, i) => ({
+            id: `training-${i}`,
+            imageUrl: url,
+            cdnUrl: null,
+            prompt: `Training image ${i + 1}`,
+          }))}
+          startIndex={trainingSlideshowIndex}
         />
       )}
     </View>
