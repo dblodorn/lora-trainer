@@ -177,10 +177,10 @@ void main() {
   gray = mix(gray, 1.0, 0.2);
 
   // Duotone: map luminance between shadow and highlight colors
-  //   Shadow:    primary green      #1A9E3F -> (0.102, 0.620, 0.247)
-  //   Highlight: golden yellow      #D9A528 -> (0.851, 0.647, 0.157)
-  vec3 shadowTone    = vec3(0.102, 0.620, 0.247);
-  vec3 highlightTone = vec3(0.851, 0.647, 0.157);
+  //   Shadow:    light grey    #C8C8C8 -> (0.784, 0.784, 0.784)
+  //   Highlight: white         #FFFFFF -> (1.000, 1.000, 1.000)
+  vec3 shadowTone    = vec3(0.784, 0.784, 0.784);
+  vec3 highlightTone = vec3(1.000, 1.000, 1.000);
   vec3 duotone = mix(shadowTone, highlightTone, gray);
 
   // Subtle noise grain overlay for analog texture
@@ -296,28 +296,6 @@ export default function ImageSlideshow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasReady, setCanvasReady] = useState(false);
-  const [svgContent, setSvgContent] = useState<string>("");
-
-  // Load trainer.svg as inline SVG
-  useEffect(() => {
-    fetch("/trainer.svg")
-      .then((res) => res.text())
-      .then((text) => {
-        // Extract the <svg> element, strip XML declaration / DOCTYPE
-        const svgMatch = text.match(/<svg[\s\S]*<\/svg>/);
-        if (svgMatch) {
-          // Make it responsive and recolor
-          let svg = svgMatch[0];
-          svg = svg.replace(/width="[^"]*"/, 'width="65vw"');
-          svg = svg.replace(/height="[^"]*"/, 'height="auto"');
-          // Ensure the SVG itself is a block element for proper flex centering
-          svg = svg.replace("<svg ", '<svg style="display:block" ');
-          svg = svg.replace(/fill="#000000"/, 'fill="#0024cc"');
-          setSvgContent(svg);
-        }
-      })
-      .catch((err) => console.error("Failed to load trainer.svg", err));
-  }, []);
 
   // Image URL queue
   const queueRef = useRef<string[]>([]);
@@ -419,10 +397,10 @@ export default function ImageSlideshow() {
     }
     glRef.current = gl;
 
-    // Set clear color to accent green so canvas matches before textures load
-    gl.clearColor(0.102, 0.620, 0.247, 1.0);
+    // Set clear color to light grey so canvas matches before textures load
+    gl.clearColor(0.784, 0.784, 0.784, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    // Canvas is now green — safe to reveal (matches the container background)
+    // Canvas is now light grey — safe to reveal (matches the container background)
     setCanvasReady(true);
 
     // Compile shaders
@@ -709,7 +687,7 @@ export default function ImageSlideshow() {
         height: "100%",
         position: "relative",
         overflow: "hidden",
-        backgroundColor: "var(--color-accent, #1A9E3F)",
+        backgroundColor: "#C8C8C8",
       }}
     >
       <canvas
@@ -721,19 +699,6 @@ export default function ImageSlideshow() {
           opacity: canvasReady ? 1 : 0,
         }}
       />
-      {svgContent && (
-        <div
-          dangerouslySetInnerHTML={{ __html: svgContent }}
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-          }}
-        />
-      )}
     </div>
   );
 }
