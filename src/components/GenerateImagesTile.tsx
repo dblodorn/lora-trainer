@@ -14,19 +14,33 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
             cursor: "pointer",
             width: "100%",
             height: "100%",
+            borderRadius: "var(--rs-radius-medium)",
+            border: "2px dashed var(--rs-color-border-neutral-faded, rgba(0,0,0,0.12))",
+            display: "flex",
+            flexDirection: "column",
           },
         }}
       >
-        {/* Dashed area matches the image square */}
+        {/* Top padding to offset for caption area height */}
+        <View padding={2} gap={1}>
+          <Text variant="caption-1" attributes={{ style: { visibility: "hidden" } }}>
+            placeholder
+          </Text>
+          <View direction="row" align="center" gap={2}>
+            <Text variant="caption-1" color="neutral-faded" attributes={{ style: { visibility: "hidden" } }}>
+              placeholder
+            </Text>
+          </View>
+        </View>
+        {/* Square content area with CTA */}
         <View
           align="center"
           justify="center"
+          grow
           attributes={{
             style: {
               width: "100%",
               aspectRatio: "1",
-              borderRadius: "var(--rs-radius-medium)",
-              border: "2px dashed var(--rs-color-border-neutral-faded, rgba(0,0,0,0.12))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -39,17 +53,6 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
             </Text>
             <Text variant="body-2" color="neutral-faded">
               Generate Images
-            </Text>
-          </View>
-        </View>
-        {/* Empty caption area to match image tile height */}
-        <View padding={2} gap={1} attributes={{ style: { minHeight: "auto" } }}>
-          <Text variant="caption-1" attributes={{ style: { visibility: "hidden" } }}>
-            placeholder
-          </Text>
-          <View direction="row" align="center" gap={2}>
-            <Text variant="caption-1" color="neutral-faded" attributes={{ style: { visibility: "hidden" } }}>
-              placeholder
             </Text>
           </View>
         </View>
