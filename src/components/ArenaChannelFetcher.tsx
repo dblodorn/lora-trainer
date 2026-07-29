@@ -293,47 +293,87 @@ export default function ArenaChannelFetcher() {
 
   const isTrainingActive = trainingPhase !== "idle";
 
+  const showLanding = !data && !isLoading && !error;
+
   return (
     <>
       <View
         width="100%"
         height="100%"
-        padding={2}
         direction="column"
-        attributes={{ style: { display: "flex", flexDirection: "column" } }}
+        attributes={{
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+          },
+        }}
       >
-        <View
-          position="sticky"
-          insetTop={0}
-          attributes={{ style: { zIndex: 10 } }}
-          backgroundColor="page"
-          paddingBottom={2}
-        >
-          <ChannelUrlForm
-            control={control}
-            onSubmit={handleSubmit(onSubmit)}
-            isLoading={isLoading}
-          />
-        </View>
-
-        {error && (
-          <Alert color="critical">Error: {error.message}</Alert>
-        )}
-
-        {!data && !isLoading && !error && (
+        {/* Full-bleed canvas background — idle/landing state only */}
+        {showLanding && (
           <View
             attributes={{
-              style: { flex: "1 1 0%", minHeight: 0, overflow: "hidden" },
+              style: {
+                position: "absolute",
+                inset: 0,
+                overflow: "hidden",
+              },
             }}
           >
             <ImageSlideshow />
           </View>
         )}
 
+        {/* Centered input overlay — idle/landing state only */}
+        {showLanding && (
+          <View
+            attributes={{
+              style: {
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+                pointerEvents: "none",
+              },
+            }}
+          >
+            <View
+              width="100%"
+              attributes={{
+                style: {
+                  maxWidth: "680px",
+                  padding: "0 16px",
+                  pointerEvents: "auto",
+                },
+              }}
+            >
+              <ChannelUrlForm
+                control={control}
+                onSubmit={handleSubmit(onSubmit)}
+                isLoading={isLoading}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <View
+            padding={4}
+            attributes={{ style: { flex: "1 1 0%" } }}
+          >
+            <Alert color="critical">Error: {error.message}</Alert>
+          </View>
+        )}
+
+        {/* Results state — grid + sidebar */}
         {data && (
           <View
             direction={{ s: "column", l: "row" }}
             gap={2}
+            padding={2}
             attributes={{
               style: { flex: "1 1 0%", minHeight: 0, overflow: "hidden" },
             }}

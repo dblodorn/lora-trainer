@@ -177,10 +177,10 @@ void main() {
   gray = mix(gray, 1.0, 0.2);
 
   // Duotone: map luminance between shadow and highlight colors
-  //   Shadow:    primary green      #1A9E3F -> (0.102, 0.620, 0.247)
-  //   Highlight: golden yellow      #D9A528 -> (0.851, 0.647, 0.157)
-  vec3 shadowTone    = vec3(0.102, 0.620, 0.247);
-  vec3 highlightTone = vec3(0.851, 0.647, 0.157);
+  //   Shadow:    light grey    #C8C8C8 -> (0.784, 0.784, 0.784)
+  //   Highlight: white         #FFFFFF -> (1.000, 1.000, 1.000)
+  vec3 shadowTone    = vec3(0.784, 0.784, 0.784);
+  vec3 highlightTone = vec3(1.000, 1.000, 1.000);
   vec3 duotone = mix(shadowTone, highlightTone, gray);
 
   // Subtle noise grain overlay for analog texture
@@ -233,28 +233,42 @@ function createProgram(
 function loadImageAsTexture(
   gl: WebGLRenderingContext,
   url: string,
+  maxRetries = 3,
 ): Promise<{ texture: WebGLTexture; width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const texture = gl.createTexture();
-      if (!texture) {
-        reject(new Error("Failed to create texture"));
-        return;
-      }
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      // Flip Y so images aren't upside-down (WebGL origin is bottom-left)
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      resolve({ texture, width: img.naturalWidth, height: img.naturalHeight });
-    };
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
+    let attempt = 0;
+
+    function tryLoad() {
+      attempt++;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const texture = gl.createTexture();
+        if (!texture) {
+          reject(new Error("Failed to create texture"));
+          return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // Flip Y so images aren't upside-down (WebGL origin is bottom-left)
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        resolve({ texture, width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => {
+        if (attempt < maxRetries) {
+          setTimeout(tryLoad, 500 * attempt);
+        } else {
+          reject(new Error(`Failed to load image after ${maxRetries} attempts: ${url}`));
+        }
+      };
+      img.src = url;
+    }
+
+    tryLoad();
   });
 }
 
@@ -296,28 +310,6 @@ export default function ImageSlideshow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasReady, setCanvasReady] = useState(false);
-  const [svgContent, setSvgContent] = useState<string>("");
-
-  // Load trainer.svg as inline SVG
-  useEffect(() => {
-    fetch("/trainer.svg")
-      .then((res) => res.text())
-      .then((text) => {
-        // Extract the <svg> element, strip XML declaration / DOCTYPE
-        const svgMatch = text.match(/<svg[\s\S]*<\/svg>/);
-        if (svgMatch) {
-          // Make it responsive and recolor
-          let svg = svgMatch[0];
-          svg = svg.replace(/width="[^"]*"/, 'width="65vw"');
-          svg = svg.replace(/height="[^"]*"/, 'height="auto"');
-          // Ensure the SVG itself is a block element for proper flex centering
-          svg = svg.replace("<svg ", '<svg style="display:block" ');
-          svg = svg.replace(/fill="#000000"/, 'fill="#0024cc"');
-          setSvgContent(svg);
-        }
-      })
-      .catch((err) => console.error("Failed to load trainer.svg", err));
-  }, []);
 
   // Image URL queue
   const queueRef = useRef<string[]>([]);
@@ -419,11 +411,9 @@ export default function ImageSlideshow() {
     }
     glRef.current = gl;
 
-    // Set clear color to accent green so canvas matches before textures load
-    gl.clearColor(0.102, 0.620, 0.247, 1.0);
+    // Set clear color to white so canvas matches before textures load
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    // Canvas is now green — safe to reveal (matches the container background)
-    setCanvasReady(true);
 
     // Compile shaders
     const vs = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
@@ -530,34 +520,50 @@ export default function ImageSlideshow() {
 
     async function boot() {
       if (!gl) return;
-      // Load first two images
-      const url1 = getNextUrl();
-      const url2 = getNextUrl();
-      if (!url1 || !url2) return;
 
-      try {
-        const [t1, t2] = await Promise.all([
-          loadImageAsTexture(gl, url1),
-          loadImageAsTexture(gl, url2),
-        ]);
-        if (cancelled) {
-          gl.deleteTexture(t1.texture);
-          gl.deleteTexture(t2.texture);
-          return;
+      // Try to load two images, skipping any that fail
+      const loaded: { texture: WebGLTexture; width: number; height: number }[] = [];
+      let attempts = 0;
+      const maxAttempts = 12;
+
+      while (loaded.length < 2 && attempts < maxAttempts) {
+        attempts++;
+        const url = getNextUrl();
+        if (!url) break;
+        try {
+          const tex = await loadImageAsTexture(gl, url);
+          if (cancelled) {
+            gl.deleteTexture(tex.texture);
+            return;
+          }
+          loaded.push(tex);
+        } catch (e) {
+          console.warn(`Slideshow: skipping failed image (attempt ${attempts})`, e);
         }
-        texFromRef.current = t1;
-        texToRef.current = t2;
-        readyRef.current = true;
-        phaseRef.current = "holding";
-        isAdvancingRef.current = false;
-        const bootTime = performance.now() / 1000;
-        startTimeRef.current = bootTime;
-        panFromRef.current = randomPanVelocity(bootTime);
-        panToRef.current = randomPanVelocity(bootTime);
-        tick();
-      } catch (e) {
-        console.error("Slideshow: failed to load initial images", e);
       }
+
+      if (loaded.length === 0) {
+        console.error("Slideshow: no images could be loaded after all attempts");
+        return;
+      }
+
+      // If we only got 1 image, duplicate it so both texFrom and texTo are set
+      if (loaded.length === 1) {
+        loaded.push(loaded[0]);
+      }
+
+      texFromRef.current = loaded[0];
+      texToRef.current = loaded[1];
+      readyRef.current = true;
+      // First images loaded — fade the canvas in
+      setCanvasReady(true);
+      phaseRef.current = "holding";
+      isAdvancingRef.current = false;
+      const bootTime = performance.now() / 1000;
+      startTimeRef.current = bootTime;
+      panFromRef.current = randomPanVelocity(bootTime);
+      panToRef.current = randomPanVelocity(bootTime);
+      tick();
     }
 
     function tick() {
@@ -655,42 +661,53 @@ export default function ImageSlideshow() {
       if (!gl || isAdvancingRef.current) return;
       isAdvancingRef.current = true;
 
-      const nextUrl = getNextUrl();
-      if (!nextUrl) {
-        isAdvancingRef.current = false;
-        // Nothing to advance to — go back to holding the current "to" image
-        phaseRef.current = "holding";
-        startTimeRef.current = performance.now() / 1000;
-        return;
-      }
+      let loaded = false;
+      let attempts = 0;
+      const maxAttempts = 5;
 
-      try {
-        const nextTex = await loadImageAsTexture(gl, nextUrl);
-        if (cancelled) {
-          gl.deleteTexture(nextTex.texture);
+      while (!loaded && attempts < maxAttempts) {
+        attempts++;
+        const nextUrl = getNextUrl();
+        if (!nextUrl) {
+          isAdvancingRef.current = false;
+          phaseRef.current = "holding";
+          startTimeRef.current = performance.now() / 1000;
           return;
         }
-        // "to" becomes "from"; new image becomes "to"
-        if (texFromRef.current) {
-          gl.deleteTexture(texFromRef.current.texture);
+
+        try {
+          const nextTex = await loadImageAsTexture(gl, nextUrl);
+          if (cancelled) {
+            gl.deleteTexture(nextTex.texture);
+            return;
+          }
+          // "to" becomes "from"; new image becomes "to"
+          if (texFromRef.current) {
+            gl.deleteTexture(texFromRef.current.texture);
+          }
+          texFromRef.current = texToRef.current;
+          texToRef.current = nextTex;
+          // Carry "to" pan state forward as the new "from" pan
+          panFromRef.current = panToRef.current;
+          const advTime = performance.now() / 1000;
+          panToRef.current = randomPanVelocity(advTime);
+          // Begin a new hold phase
+          phaseRef.current = "holding";
+          startTimeRef.current = advTime;
+          loaded = true;
+        } catch (e) {
+          console.warn(`Slideshow: skipping failed image (attempt ${attempts})`, e);
+          // Continue to next URL in queue
         }
-        texFromRef.current = texToRef.current;
-        texToRef.current = nextTex;
-        // Carry "to" pan state forward as the new "from" pan
-        panFromRef.current = panToRef.current;
-        const advTime = performance.now() / 1000;
-        panToRef.current = randomPanVelocity(advTime);
-        // Begin a new hold phase
-        phaseRef.current = "holding";
-        startTimeRef.current = advTime;
-      } catch (e) {
-        console.error("Slideshow: failed to load next image", e);
-        // On error, just restart holding with current images
+      }
+
+      if (!loaded) {
+        // All attempts failed — keep holding current images
         phaseRef.current = "holding";
         startTimeRef.current = performance.now() / 1000;
-      } finally {
-        isAdvancingRef.current = false;
       }
+
+      isAdvancingRef.current = false;
     }
 
     boot();
@@ -709,7 +726,9 @@ export default function ImageSlideshow() {
         height: "100%",
         position: "relative",
         overflow: "hidden",
-        backgroundColor: "var(--color-accent, #1A9E3F)",
+        backgroundColor: "#FFFFFF",
+        opacity: canvasReady ? 1 : 0,
+        transition: "opacity 600ms ease-in",
       }}
     >
       <canvas
@@ -718,22 +737,8 @@ export default function ImageSlideshow() {
           display: "block",
           width: "100%",
           height: "100%",
-          opacity: canvasReady ? 1 : 0,
         }}
       />
-      {svgContent && (
-        <div
-          dangerouslySetInnerHTML={{ __html: svgContent }}
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-          }}
-        />
-      )}
     </div>
   );
 }
