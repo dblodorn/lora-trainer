@@ -17,7 +17,18 @@ export default function ArenaChannelBadge({
       href={url}
       attributes={{ target: "_blank", rel: "noopener noreferrer" }}
     >
-      <Badge size={size} color="neutral" variant="faded">
+      <Badge
+        size={size}
+        color="neutral"
+        variant="faded"
+        attributes={{
+          style: {
+            borderRadius: "9999px",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+          },
+        }}
+      >
         <View
           direction="row"
           gap={1}
