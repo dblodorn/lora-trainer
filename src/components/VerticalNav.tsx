@@ -32,30 +32,29 @@ export default function VerticalNav() {
       {NAV_ITEMS.map((item) => {
         const isActive = item.match(currentPath);
         return (
-          <NextLink key={item.href} href={item.href} style={{ flex: 1 }}>
-            <a
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textDecoration: "none",
-                borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
-                cursor: "pointer",
-                transition: "background-color 150ms ease",
-                writingMode: "vertical-rl",
-                transform: "rotate(180deg)",
-                height: "100%",
-              }}
+          <NextLink
+            key={item.href}
+            href={item.href}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+              borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+              cursor: "pointer",
+              transition: "background-color 150ms ease",
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+            }}
+          >
+            <Text
+              variant="body-1"
+              color={isActive ? "primary" : "neutral-faded"}
+              weight={isActive ? "bold" : "regular"}
             >
-              <Text
-                variant="body-1"
-                color={isActive ? "primary" : "neutral-faded"}
-                weight={isActive ? "bold" : "regular"}
-              >
-                {item.label}
-              </Text>
-            </a>
+              {item.label}
+            </Text>
           </NextLink>
         );
       })}
