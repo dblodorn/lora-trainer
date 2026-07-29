@@ -42,9 +42,7 @@ export default function TrainingImagesBadge({
             style: { display: "inline-flex", alignItems: "center" },
           }}
         >
-          +{count}
-          {" "}
-          training images
+          {count > 0 ? `+${count} training images »` : "training images »"}
         </View>
       </Badge>
     </Actionable>

@@ -112,10 +112,6 @@ export default function LoraDetailPage() {
                     url={lora.arenaChannelUrl}
                   />
                 )}
-                <TrainingImagesBadge
-                  count={lora.imageUrls.length}
-                  onClick={() => setTrainingSlideshowIndex(0)}
-                />
               </View>
             </View.Item>
 
@@ -152,20 +148,10 @@ export default function LoraDetailPage() {
                 />
               </div>
             ))}
-            {lora.imageUrls.length > 8 && (
-              <View
-                width="56px"
-                height="56px"
-                align="center"
-                justify="center"
-                borderRadius="small"
-                backgroundColor="elevation-raised"
-              >
-                <Text variant="caption-1" color="neutral-faded">
-                  +{lora.imageUrls.length - 8}
-                </Text>
-              </View>
-            )}
+            <TrainingImagesBadge
+              count={lora.imageUrls.length > 8 ? lora.imageUrls.length - 8 : 0}
+              onClick={() => setTrainingSlideshowIndex(0)}
+            />
           </View>
         </View>
 
