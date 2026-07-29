@@ -47,8 +47,6 @@ export default function GeneratedImageGrid({
 }: GeneratedImageGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  if (images.length === 0) return null;
-
   const columns =
     variant === "modal"
       ? { s: 6 as const, m: 6 as const }

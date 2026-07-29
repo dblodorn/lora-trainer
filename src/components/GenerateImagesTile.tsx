@@ -9,13 +9,20 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
     <View.Item columns={{ s: 6, m: 6, l: 3 }}>
       <Actionable
         onClick={onClick}
-        attributes={{ style: { cursor: "pointer", height: "100%" } }}
+        attributes={{
+          style: {
+            cursor: "pointer",
+            width: "100%",
+            height: "100%",
+          },
+        }}
       >
         <View
           align="center"
           justify="center"
           attributes={{
             style: {
+              width: "100%",
               aspectRatio: "1",
               borderRadius: "var(--rs-radius-medium)",
               border: "2px dashed var(--rs-color-border-neutral-faded, rgba(0,0,0,0.12))",
