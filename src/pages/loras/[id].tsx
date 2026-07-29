@@ -76,12 +76,19 @@ export default function LoraDetailPage() {
   return (
     <View height="100vh" direction="column" attributes={{ style: { width: `calc(100% - ${NAV_WIDTH}px)` } }}>
       <View
-        padding={4}
         gap={6}
         attributes={{ style: { flex: 1, overflowY: "auto" } }}
       >
         {/* Header */}
-        <View gap={4}>
+        <View
+          padding={4}
+          gap={4}
+          attributes={{
+            style: {
+              borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+            },
+          }}
+        >
           <View direction="row" align="center" gap={4}>
             <View.Item grow>
               <View gap={1}>
@@ -150,19 +157,8 @@ export default function LoraDetailPage() {
           </View>
         </View>
 
-        {/* Divider */}
-        <View
-          attributes={{
-            style: {
-              width: "100%",
-              height: "1px",
-              backgroundColor: "var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
-            },
-          }}
-        />
-
         {/* Generated Images Gallery */}
-        <View gap={3}>
+        <View gap={3} padding={4}>
           {imagesQuery.isLoading && (
             <View align="center" padding={6}>
               <Loader />
