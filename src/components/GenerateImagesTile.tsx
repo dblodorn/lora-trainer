@@ -3,9 +3,10 @@ import ImageSlideshow from "@/components/ImageSlideshow";
 
 interface GenerateImagesTileProps {
   onClick: () => void;
+  images?: string[];
 }
 
-export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps) {
+export default function GenerateImagesTile({ onClick, images }: GenerateImagesTileProps) {
   return (
     <View.Item columns={{ s: 6, m: 6, l: 3 }}>
       <div
@@ -29,7 +30,7 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
             zIndex: 0,
           }}
         >
-          <ImageSlideshow />
+          <ImageSlideshow images={images} />
         </div>
 
         {/* Dashed border overlay — on top of canvas, transparent fill */}

@@ -165,7 +165,10 @@ export default function LoraDetailPage() {
               onImageClick={(index) => setSlideshowIndex(index)}
               prependTile={
                 isCompleted ? (
-                  <GenerateImagesTile onClick={() => setShowGenerateModal(true)} />
+                  <GenerateImagesTile
+                    onClick={() => setShowGenerateModal(true)}
+                    images={lora.imageUrls}
+                  />
                 ) : null
               }
             />
