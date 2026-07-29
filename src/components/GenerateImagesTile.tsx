@@ -1,5 +1,6 @@
 import { View, Text } from "reshaped";
 import ImageSlideshow from "@/components/ImageSlideshow";
+import { CirclePlus } from "lucide-react";
 
 interface GenerateImagesTileProps {
   onClick: () => void;
@@ -64,9 +65,7 @@ export default function GenerateImagesTile({ onClick, images }: GenerateImagesTi
             }}
           >
             <View gap={2} align="center">
-              <Text variant="title-2" color="neutral-faded">
-                +
-              </Text>
+              <CirclePlus size={32} color="var(--rs-color-text-neutral-faded, rgba(0,0,0,0.4))" />
               <Text variant="body-2" color="neutral-faded">
                 Generate Images
               </Text>
