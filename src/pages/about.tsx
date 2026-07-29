@@ -1,4 +1,4 @@
-import { View, Text } from "reshaped";
+import { View, Text, Link } from "reshaped";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
@@ -37,9 +37,19 @@ export default function AboutPage() {
           },
         }}
       >
-        <Text variant="body-1" color="neutral-faded">
-          LoRA Trainer — train custom image models from are.na channels.
-        </Text>
+        <View direction="column" gap={2} align="center">
+          <Text variant="body-1" color="neutral-faded">
+            LoRA Trainer — train custom image models from are.na channels.
+          </Text>
+          <Link
+            href="https://github.com/dblodorn/lora-trainer"
+            attributes={{ target: "_blank", rel: "noopener noreferrer" }}
+          >
+            <Text variant="body-1" color="neutral-faded">
+              github.com/dblodorn/lora-trainer
+            </Text>
+          </Link>
+        </View>
       </View>
     </View>
   );
