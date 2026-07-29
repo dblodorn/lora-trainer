@@ -82,18 +82,10 @@ export default function LoraDetailPage() {
       >
         {/* Header */}
         <View gap={4}>
-          <View direction="row" align="center" gap={2}>
-            <NextLink href="/loras" passHref legacyBehavior>
-              <Button as="a" variant="ghost" size="small">
-                &larr; Gallery
-              </Button>
-            </NextLink>
-          </View>
-
           <View direction="row" align="center" gap={4}>
             <View.Item grow>
               <View gap={1}>
-                <Text variant="title-1">{lora.triggerWord}</Text>
+                <Text variant="body-1" weight="bold">{lora.triggerWord}</Text>
                 <View direction="row" gap={3}>
                   <Text variant="body-2" color="neutral-faded">
                     {lora.steps} steps
