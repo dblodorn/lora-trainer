@@ -126,7 +126,7 @@ export default function LoraDetailPage() {
           </View>
 
           {/* Training image thumbnails */}
-          <View direction="row" gap={1} wrap>
+          <View direction="row" gap={1} wrap align="center">
             {lora.imageUrls.slice(0, 8).map((url, i) => (
               <div
                 key={i}
@@ -148,10 +148,12 @@ export default function LoraDetailPage() {
                 />
               </div>
             ))}
-            <TrainingImagesBadge
-              count={lora.imageUrls.length > 8 ? lora.imageUrls.length - 8 : 0}
-              onClick={() => setTrainingSlideshowIndex(0)}
-            />
+            <View paddingStart={2}>
+              <TrainingImagesBadge
+                count={lora.imageUrls.length > 8 ? lora.imageUrls.length - 8 : 0}
+                onClick={() => setTrainingSlideshowIndex(0)}
+              />
+            </View>
           </View>
         </View>
 
