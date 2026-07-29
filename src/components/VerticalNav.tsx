@@ -1,4 +1,4 @@
-import { View, Text } from "reshaped";
+import { Text } from "reshaped";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 
@@ -15,44 +15,37 @@ export default function VerticalNav() {
   const currentPath = router.pathname;
 
   return (
-    <View
-      position="fixed"
-      insetEnd={0}
-      insetTop={0}
-      direction="column"
-      attributes={{
-        style: {
-          width: `${NAV_WIDTH}px`,
-          height: "100vh",
-          zIndex: 100,
-          display: "flex",
-          flexDirection: "column",
-          borderLeft: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
-          backgroundColor: "var(--rs-color-background-base, #ffffff)",
-        },
+    <nav
+      style={{
+        position: "fixed",
+        right: 0,
+        top: 0,
+        width: `${NAV_WIDTH}px`,
+        height: "100vh",
+        zIndex: 100,
+        display: "flex",
+        flexDirection: "column",
+        borderLeft: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+        backgroundColor: "var(--rs-color-background-base, #ffffff)",
       }}
     >
       {NAV_ITEMS.map((item) => {
         const isActive = item.match(currentPath);
         return (
-          <NextLink key={item.href} href={item.href} passHref legacyBehavior>
-            <View
-              as="a"
-              align="center"
-              justify="center"
-              attributes={{
-                style: {
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
-                  cursor: "pointer",
-                  transition: "background-color 150ms ease",
-                  writingMode: "vertical-rl",
-                  transform: "rotate(180deg)",
-                },
+          <NextLink key={item.href} href={item.href} style={{ flex: 1 }}>
+            <a
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textDecoration: "none",
+                borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+                cursor: "pointer",
+                transition: "background-color 150ms ease",
+                writingMode: "vertical-rl",
+                transform: "rotate(180deg)",
+                height: "100%",
               }}
             >
               <Text
@@ -62,11 +55,11 @@ export default function VerticalNav() {
               >
                 {item.label}
               </Text>
-            </View>
+            </a>
           </NextLink>
         );
       })}
-    </View>
+    </nav>
   );
 }
 
