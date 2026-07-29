@@ -8,6 +8,7 @@ import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
 import ArenaChannelBadge from "@/components/ArenaChannelBadge";
+import TrainingImagesBadge from "@/components/TrainingImagesBadge";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
@@ -24,6 +25,7 @@ export default function LoraDetailPage() {
   const id = router.query.id as string | undefined;
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [slideshowIndex, setSlideshowIndex] = useState<number | null>(null);
+  const [trainingSlideshowIndex, setTrainingSlideshowIndex] = useState<number | null>(null);
 
   const loraQuery = trpc.lora.getById.useQuery(
     { id: id! },
@@ -110,6 +112,10 @@ export default function LoraDetailPage() {
                     url={lora.arenaChannelUrl}
                   />
                 )}
+                <TrainingImagesBadge
+                  count={lora.imageUrls.length}
+                  onClick={() => setTrainingSlideshowIndex(0)}
+                />
               </View>
             </View.Item>
 
@@ -222,6 +228,21 @@ export default function LoraDetailPage() {
           onClose={() => setSlideshowIndex(null)}
           images={images}
           startIndex={slideshowIndex ?? 0}
+        />
+      )}
+
+      {/* Training Images Slideshow Modal */}
+      {trainingSlideshowIndex !== null && (
+        <SlideshowModal
+          active={trainingSlideshowIndex !== null}
+          onClose={() => setTrainingSlideshowIndex(null)}
+          images={lora.imageUrls.map((url, i) => ({
+            id: `training-${i}`,
+            imageUrl: url,
+            cdnUrl: null,
+            prompt: `Training image ${i + 1}`,
+          }))}
+          startIndex={trainingSlideshowIndex}
         />
       )}
     </View>
