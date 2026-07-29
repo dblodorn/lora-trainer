@@ -400,8 +400,6 @@ export default function ImageSlideshow() {
     // Set clear color to white so canvas matches before textures load
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    // Canvas is now white — safe to reveal (matches the container background)
-    setCanvasReady(true);
 
     // Compile shaders
     const vs = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
@@ -526,6 +524,8 @@ export default function ImageSlideshow() {
         texFromRef.current = t1;
         texToRef.current = t2;
         readyRef.current = true;
+        // First images loaded — fade the canvas in
+        setCanvasReady(true);
         phaseRef.current = "holding";
         isAdvancingRef.current = false;
         const bootTime = performance.now() / 1000;
@@ -688,6 +688,8 @@ export default function ImageSlideshow() {
         position: "relative",
         overflow: "hidden",
         backgroundColor: "#FFFFFF",
+        opacity: canvasReady ? 1 : 0,
+        transition: "opacity 600ms ease-in",
       }}
     >
       <canvas
@@ -696,8 +698,6 @@ export default function ImageSlideshow() {
           display: "block",
           width: "100%",
           height: "100%",
-          backgroundColor: "#FFFFFF",
-          opacity: canvasReady ? 1 : 0,
         }}
       />
     </div>
