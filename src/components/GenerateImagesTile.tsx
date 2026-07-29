@@ -1,4 +1,5 @@
 import { Actionable, View, Text } from "reshaped";
+import ImageSlideshow from "@/components/ImageSlideshow";
 
 interface GenerateImagesTileProps {
   onClick: () => void;
@@ -18,6 +19,8 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
             border: "2px dashed var(--rs-color-border-neutral-faded, rgba(0,0,0,0.12))",
             display: "flex",
             flexDirection: "column",
+            position: "relative",
+            overflow: "hidden",
           },
         }}
       >
@@ -32,28 +35,50 @@ export default function GenerateImagesTile({ onClick }: GenerateImagesTileProps)
             </Text>
           </View>
         </View>
-        {/* Square content area with CTA */}
+        {/* Canvas fills the remaining space of the tile */}
         <View
-          align="center"
-          justify="center"
           grow
           attributes={{
             style: {
-              width: "100%",
-              aspectRatio: "1",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              position: "relative",
+              flex: 1,
+              minHeight: 0,
             },
           }}
         >
-          <View gap={2} align="center">
-            <Text variant="title-2" color="neutral-faded">
-              +
-            </Text>
-            <Text variant="body-2" color="neutral-faded">
-              Generate Images
-            </Text>
+          <View
+            attributes={{
+              style: {
+                position: "absolute",
+                inset: 0,
+              },
+            }}
+          >
+            <ImageSlideshow />
+          </View>
+          {/* CTA overlay on top of canvas */}
+          <View
+            align="center"
+            justify="center"
+            attributes={{
+              style: {
+                position: "relative",
+                zIndex: 1,
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            }}
+          >
+            <View gap={2} align="center">
+              <Text variant="title-2" color="neutral-faded">
+                +
+              </Text>
+              <Text variant="body-2" color="neutral-faded">
+                Generate Images
+              </Text>
+            </View>
           </View>
         </View>
       </Actionable>
