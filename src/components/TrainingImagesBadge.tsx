@@ -1,4 +1,4 @@
-import { View, Badge } from "reshaped";
+import { Actionable, Badge, View } from "reshaped";
 
 interface TrainingImagesBadgeProps {
   count: number;
@@ -12,7 +12,7 @@ export default function TrainingImagesBadge({
   size = "small",
 }: TrainingImagesBadgeProps) {
   return (
-    <View
+    <Actionable
       onClick={onClick}
       attributes={{
         style: {
@@ -47,6 +47,6 @@ export default function TrainingImagesBadge({
           training images
         </View>
       </Badge>
-    </View>
+    </Actionable>
   );
 }
