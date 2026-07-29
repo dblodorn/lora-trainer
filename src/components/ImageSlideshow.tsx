@@ -233,28 +233,42 @@ function createProgram(
 function loadImageAsTexture(
   gl: WebGLRenderingContext,
   url: string,
+  maxRetries = 3,
 ): Promise<{ texture: WebGLTexture; width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const texture = gl.createTexture();
-      if (!texture) {
-        reject(new Error("Failed to create texture"));
-        return;
-      }
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      // Flip Y so images aren't upside-down (WebGL origin is bottom-left)
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      resolve({ texture, width: img.naturalWidth, height: img.naturalHeight });
-    };
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
+    let attempt = 0;
+
+    function tryLoad() {
+      attempt++;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const texture = gl.createTexture();
+        if (!texture) {
+          reject(new Error("Failed to create texture"));
+          return;
+        }
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // Flip Y so images aren't upside-down (WebGL origin is bottom-left)
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        resolve({ texture, width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => {
+        if (attempt < maxRetries) {
+          setTimeout(tryLoad, 500 * attempt);
+        } else {
+          reject(new Error(`Failed to load image after ${maxRetries} attempts: ${url}`));
+        }
+      };
+      img.src = url;
+    }
+
+    tryLoad();
   });
 }
 
@@ -506,36 +520,50 @@ export default function ImageSlideshow() {
 
     async function boot() {
       if (!gl) return;
-      // Load first two images
-      const url1 = getNextUrl();
-      const url2 = getNextUrl();
-      if (!url1 || !url2) return;
 
-      try {
-        const [t1, t2] = await Promise.all([
-          loadImageAsTexture(gl, url1),
-          loadImageAsTexture(gl, url2),
-        ]);
-        if (cancelled) {
-          gl.deleteTexture(t1.texture);
-          gl.deleteTexture(t2.texture);
-          return;
+      // Try to load two images, skipping any that fail
+      const loaded: { texture: WebGLTexture; width: number; height: number }[] = [];
+      let attempts = 0;
+      const maxAttempts = 12;
+
+      while (loaded.length < 2 && attempts < maxAttempts) {
+        attempts++;
+        const url = getNextUrl();
+        if (!url) break;
+        try {
+          const tex = await loadImageAsTexture(gl, url);
+          if (cancelled) {
+            gl.deleteTexture(tex.texture);
+            return;
+          }
+          loaded.push(tex);
+        } catch (e) {
+          console.warn(`Slideshow: skipping failed image (attempt ${attempts})`, e);
         }
-        texFromRef.current = t1;
-        texToRef.current = t2;
-        readyRef.current = true;
-        // First images loaded — fade the canvas in
-        setCanvasReady(true);
-        phaseRef.current = "holding";
-        isAdvancingRef.current = false;
-        const bootTime = performance.now() / 1000;
-        startTimeRef.current = bootTime;
-        panFromRef.current = randomPanVelocity(bootTime);
-        panToRef.current = randomPanVelocity(bootTime);
-        tick();
-      } catch (e) {
-        console.error("Slideshow: failed to load initial images", e);
       }
+
+      if (loaded.length === 0) {
+        console.error("Slideshow: no images could be loaded after all attempts");
+        return;
+      }
+
+      // If we only got 1 image, duplicate it so both texFrom and texTo are set
+      if (loaded.length === 1) {
+        loaded.push(loaded[0]);
+      }
+
+      texFromRef.current = loaded[0];
+      texToRef.current = loaded[1];
+      readyRef.current = true;
+      // First images loaded — fade the canvas in
+      setCanvasReady(true);
+      phaseRef.current = "holding";
+      isAdvancingRef.current = false;
+      const bootTime = performance.now() / 1000;
+      startTimeRef.current = bootTime;
+      panFromRef.current = randomPanVelocity(bootTime);
+      panToRef.current = randomPanVelocity(bootTime);
+      tick();
     }
 
     function tick() {
@@ -633,42 +661,53 @@ export default function ImageSlideshow() {
       if (!gl || isAdvancingRef.current) return;
       isAdvancingRef.current = true;
 
-      const nextUrl = getNextUrl();
-      if (!nextUrl) {
-        isAdvancingRef.current = false;
-        // Nothing to advance to — go back to holding the current "to" image
-        phaseRef.current = "holding";
-        startTimeRef.current = performance.now() / 1000;
-        return;
-      }
+      let loaded = false;
+      let attempts = 0;
+      const maxAttempts = 5;
 
-      try {
-        const nextTex = await loadImageAsTexture(gl, nextUrl);
-        if (cancelled) {
-          gl.deleteTexture(nextTex.texture);
+      while (!loaded && attempts < maxAttempts) {
+        attempts++;
+        const nextUrl = getNextUrl();
+        if (!nextUrl) {
+          isAdvancingRef.current = false;
+          phaseRef.current = "holding";
+          startTimeRef.current = performance.now() / 1000;
           return;
         }
-        // "to" becomes "from"; new image becomes "to"
-        if (texFromRef.current) {
-          gl.deleteTexture(texFromRef.current.texture);
+
+        try {
+          const nextTex = await loadImageAsTexture(gl, nextUrl);
+          if (cancelled) {
+            gl.deleteTexture(nextTex.texture);
+            return;
+          }
+          // "to" becomes "from"; new image becomes "to"
+          if (texFromRef.current) {
+            gl.deleteTexture(texFromRef.current.texture);
+          }
+          texFromRef.current = texToRef.current;
+          texToRef.current = nextTex;
+          // Carry "to" pan state forward as the new "from" pan
+          panFromRef.current = panToRef.current;
+          const advTime = performance.now() / 1000;
+          panToRef.current = randomPanVelocity(advTime);
+          // Begin a new hold phase
+          phaseRef.current = "holding";
+          startTimeRef.current = advTime;
+          loaded = true;
+        } catch (e) {
+          console.warn(`Slideshow: skipping failed image (attempt ${attempts})`, e);
+          // Continue to next URL in queue
         }
-        texFromRef.current = texToRef.current;
-        texToRef.current = nextTex;
-        // Carry "to" pan state forward as the new "from" pan
-        panFromRef.current = panToRef.current;
-        const advTime = performance.now() / 1000;
-        panToRef.current = randomPanVelocity(advTime);
-        // Begin a new hold phase
-        phaseRef.current = "holding";
-        startTimeRef.current = advTime;
-      } catch (e) {
-        console.error("Slideshow: failed to load next image", e);
-        // On error, just restart holding with current images
+      }
+
+      if (!loaded) {
+        // All attempts failed — keep holding current images
         phaseRef.current = "holding";
         startTimeRef.current = performance.now() / 1000;
-      } finally {
-        isAdvancingRef.current = false;
       }
+
+      isAdvancingRef.current = false;
     }
 
     boot();
