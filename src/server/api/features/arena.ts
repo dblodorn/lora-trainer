@@ -10,6 +10,21 @@ const urlSchema = z.string().regex(/^https:\/\/www\.are\.na\/[^\/]+\/[^\/]+$/, {
     "Invalid are.na URL format. Expected format: https://www.are.na/username/channel-name",
 });
 
+/** Fetch channel metadata (title, slug) from the are.na REST API. */
+async function fetchChannelMetadata(
+  slug: string,
+): Promise<{ title: string; slug: string }> {
+  try {
+    const res = await fetch(`https://api.are.na/v2/channels/${slug}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { title: data.title || slug, slug: data.slug || slug };
+  } catch {
+    // Fallback: use the slug as the title
+    return { title: slug, slug };
+  }
+}
+
 export const arenaRouter = router({
   getChannelImages: publicProcedure
     .input(z.object({ url: urlSchema }))
@@ -19,10 +34,11 @@ export const arenaRouter = router({
         const urlParts = input.url.split("/");
         const channelSlug = urlParts[urlParts.length - 1];
 
-        // Fetch channel contents
-        const contents = await arena
-          .channel(channelSlug)
-          .contents({ per: 100 });
+        // Fetch channel metadata and contents in parallel
+        const [channelMeta, contents] = await Promise.all([
+          fetchChannelMetadata(channelSlug),
+          arena.channel(channelSlug).contents({ per: 100 }),
+        ]);
 
         // Filter for image blocks and extract image URLs
         const images = contents
@@ -37,8 +53,8 @@ export const arenaRouter = router({
 
         return {
           channel: {
-            title: contents.attrs?.title || "Unknown Channel",
-            slug: channelSlug,
+            title: channelMeta.title,
+            slug: channelMeta.slug,
             url: input.url,
           },
           images,
