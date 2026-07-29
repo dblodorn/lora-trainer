@@ -7,6 +7,7 @@ import { trpc } from "@/utils/trpc";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
+import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -73,7 +74,7 @@ export default function LoraDetailPage() {
   const images = imagesQuery.data ?? [];
 
   return (
-    <View height="100vh" direction="column">
+    <View height="100vh" direction="column" attributes={{ style: { width: `calc(100% - ${NAV_WIDTH}px)` } }}>
       <View
         padding={4}
         gap={6}
