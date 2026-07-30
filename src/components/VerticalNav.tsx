@@ -7,6 +7,7 @@ const NAV_WIDTH = 60;
 const NAV_ITEMS = [
   { label: "Train", href: "/", match: (path: string) => path === "/" },
   { label: "Loras", href: "/loras", match: (path: string) => path.startsWith("/loras") },
+  { label: "Auth", href: "/auth", match: (path: string) => path === "/auth" },
   { label: "About", href: "/about", match: (path: string) => path === "/about" },
 ] as const;
 
