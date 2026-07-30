@@ -384,6 +384,7 @@ export default function ArenaChannelFetcher() {
                   height: "100%",
                   overflow: "hidden",
                   padding: 8,
+                  borderRight: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
                 },
               }}
             >
@@ -403,17 +404,6 @@ export default function ArenaChannelFetcher() {
                 />
               </View>
             </View>
-
-            {/* Vertical rule */}
-            <View
-              attributes={{
-                style: {
-                  width: "1px",
-                  backgroundColor: "var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
-                  flexShrink: 0,
-                },
-              }}
-            />
 
             <View
               attributes={{
