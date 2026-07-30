@@ -108,15 +108,17 @@ export default function LoraDetailPage() {
                     {formatDate(lora.createdAt)}
                   </Text>
                 </View>
-                {lora.arenaChannelUrl && lora.arenaChannelTitle && (
-                  <ArenaChannelBadge
-                    title={lora.arenaChannelTitle}
-                    url={lora.arenaChannelUrl}
-                  />
-                )}
-                {lora.loraWeightsUrl && (
-                  <LoraUrlCopyBadge url={lora.loraWeightsUrl} />
-                )}
+                <View direction="row" gap={2} wrap>
+                  {lora.arenaChannelUrl && lora.arenaChannelTitle && (
+                    <ArenaChannelBadge
+                      title={lora.arenaChannelTitle}
+                      url={lora.arenaChannelUrl}
+                    />
+                  )}
+                  {lora.loraWeightsUrl && (
+                    <LoraUrlCopyBadge url={lora.loraWeightsUrl} />
+                  )}
+                </View>
               </View>
             </View.Item>
 
