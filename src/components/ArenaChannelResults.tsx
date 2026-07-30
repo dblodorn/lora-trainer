@@ -60,6 +60,10 @@ export default function ArenaChannelResults({
         gap={2}
         attributes={{
           style: {
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            backgroundColor: "var(--rs-color-background-page, #ffffff)",
             borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
           },
         }}
