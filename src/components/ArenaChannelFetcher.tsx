@@ -372,15 +372,20 @@ export default function ArenaChannelFetcher() {
         {data && (
           <View
             direction={{ s: "column", l: "row" }}
-            gap={2}
-            padding={2}
             attributes={{
               style: { flex: "1 1 0%", minHeight: 0, overflow: "hidden" },
             }}
           >
-            <View.Item
-              columns={{ s: 12, l: 9 }}
-              attributes={{ style: { height: "100%", overflow: "hidden" } }}
+            <View
+              attributes={{
+                style: {
+                  flex: 9,
+                  minWidth: 0,
+                  height: "100%",
+                  overflow: "hidden",
+                  padding: 8,
+                },
+              }}
             >
               <View
                 className="scrollbar-hidden"
@@ -397,11 +402,29 @@ export default function ArenaChannelFetcher() {
                   onImageSelect={handleImageSelection}
                 />
               </View>
-            </View.Item>
+            </View>
 
-            <View.Item
-              columns={{ s: 12, l: 3 }}
-              attributes={{ style: { height: "100%", overflowY: "auto" } }}
+            {/* Vertical rule */}
+            <View
+              attributes={{
+                style: {
+                  width: "1px",
+                  backgroundColor: "var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+                  flexShrink: 0,
+                },
+              }}
+            />
+
+            <View
+              attributes={{
+                style: {
+                  flex: 3,
+                  minWidth: 0,
+                  height: "100%",
+                  overflowY: "auto",
+                  padding: 8,
+                },
+              }}
             >
               <Sidebar
                 selectedImages={selectedImages}
@@ -412,7 +435,7 @@ export default function ArenaChannelFetcher() {
                 isSubmitting={trainLoraMutation.isPending}
                 isTrainingActive={isTrainingActive}
               />
-            </View.Item>
+            </View>
           </View>
         )}
       </View>
