@@ -62,12 +62,12 @@ export default function GenerateImagesTile({ onClick, images }: GenerateImagesTi
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              paddingTop: "8px",
+              paddingTop: 4,
             }}
           >
             <View gap={2} align="center">
               <CirclePlus size={22} color="#000000" />
-              <Text variant="body-2" color="#000000">
+              <Text variant="body-2" color="primary">
                 Generate Images
               </Text>
             </View>
