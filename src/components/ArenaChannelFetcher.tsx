@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { View, Alert } from "reshaped";
+import { useRouter } from "next/router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAccount } from "wagmi";
 import { isAddressEqual, type Address } from "viem";
@@ -24,6 +25,7 @@ export type TrainingPhase =
   | "failed";
 
 export default function ArenaChannelFetcher() {
+  const router = useRouter();
   const [submittedUrl, setSubmittedUrl] = useState("");
   const [trainingRequestId, setTrainingRequestId] = useState<string | null>(
     null,
@@ -72,6 +74,27 @@ export default function ArenaChannelFetcher() {
   });
 
   const selectedImages = useWatch({ control, name: "selectedImages" });
+
+  // Seed training view from URL query param
+  useEffect(() => {
+    const channelParam = router.query.channel;
+    if (channelParam && typeof channelParam === "string") {
+      setValue("url", channelParam);
+      setSubmittedUrl(channelParam);
+    } else if (submittedUrl) {
+      // Channel param was cleared — reset to landing state
+      setSubmittedUrl("");
+      setTrainingRequestId(null);
+      setTrainingLoraId(null);
+      setTrainingPhase("idle");
+      setTrainingError(null);
+      hasSavedRef.current = false;
+      setValue("url", "");
+      setValue("selectedImages", []);
+      setValue("triggerWord", "");
+      setValue("trainingSteps", 1000);
+    }
+  }, [router.query.channel]);
 
   const { data, isLoading, error } = trpc.arena.getChannelImages.useQuery(
     { url: submittedUrl },
@@ -185,6 +208,11 @@ export default function ArenaChannelFetcher() {
   const onSubmit = (formData: FormData) => {
     if (formData.url.trim()) {
       setSubmittedUrl(formData.url.trim());
+      router.replace(
+        { query: { channel: formData.url.trim() } },
+        undefined,
+        { shallow: true },
+      );
     }
   };
 
@@ -260,6 +288,8 @@ export default function ArenaChannelFetcher() {
     setValue("selectedImages", []);
     setValue("triggerWord", "");
     setValue("trainingSteps", 1000);
+    // Clear URL query param
+    router.replace({ query: {} }, undefined, { shallow: true });
   }, [setValue]);
 
   const handleCancelTraining = useCallback(() => {
@@ -372,19 +402,23 @@ export default function ArenaChannelFetcher() {
         {data && (
           <View
             direction={{ s: "column", l: "row" }}
-            gap={2}
-            padding={2}
             attributes={{
               style: { flex: "1 1 0%", minHeight: 0, overflow: "hidden" },
             }}
           >
-            <View.Item
-              columns={{ s: 12, l: 9 }}
-              attributes={{ style: { height: "100%", overflow: "hidden" } }}
+            <View
+              attributes={{
+                style: {
+                  flex: 9,
+                  minWidth: 0,
+                  height: "100%",
+                  overflow: "hidden",
+                  borderRight: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+                },
+              }}
             >
               <View
                 className="scrollbar-hidden"
-                padding={1}
                 attributes={{
                   style: { height: "100%", overflowY: "auto" },
                 }}
@@ -397,11 +431,18 @@ export default function ArenaChannelFetcher() {
                   onImageSelect={handleImageSelection}
                 />
               </View>
-            </View.Item>
+            </View>
 
-            <View.Item
-              columns={{ s: 12, l: 3 }}
-              attributes={{ style: { height: "100%", overflowY: "auto" } }}
+            <View
+              attributes={{
+                style: {
+                  flex: 3,
+                  minWidth: 0,
+                  height: "100%",
+                  overflowY: "auto",
+                  padding: 8,
+                },
+              }}
             >
               <Sidebar
                 selectedImages={selectedImages}
@@ -412,7 +453,7 @@ export default function ArenaChannelFetcher() {
                 isSubmitting={trainLoraMutation.isPending}
                 isTrainingActive={isTrainingActive}
               />
-            </View.Item>
+            </View>
           </View>
         )}
       </View>
