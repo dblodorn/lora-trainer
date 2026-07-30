@@ -53,8 +53,17 @@ export default function ArenaChannelResults({
   }
 
   return (
-    <View gap={6}>
-      <View gap={2}>
+    <View>
+      {/* Header */}
+      <View
+        padding={4}
+        gap={2}
+        attributes={{
+          style: {
+            borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
+          },
+        }}
+      >
         <View direction="row" gap={2} align="center">
           <NextImage
             src="/are-na-logo.png"
@@ -81,7 +90,10 @@ export default function ArenaChannelResults({
         </Text>
       </View>
 
-      {renderImageGrid()}
+      {/* Grid */}
+      <View padding={4}>
+        {renderImageGrid()}
+      </View>
     </View>
   );
 }

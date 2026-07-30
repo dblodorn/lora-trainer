@@ -383,14 +383,12 @@ export default function ArenaChannelFetcher() {
                   minWidth: 0,
                   height: "100%",
                   overflow: "hidden",
-                  padding: 8,
                   borderRight: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
                 },
               }}
             >
               <View
                 className="scrollbar-hidden"
-                padding={1}
                 attributes={{
                   style: { height: "100%", overflowY: "auto" },
                 }}
