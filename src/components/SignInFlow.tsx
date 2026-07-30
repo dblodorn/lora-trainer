@@ -66,15 +66,6 @@ export default function SignInFlow({ onSuccess }: SignInFlowProps) {
 
   return (
     <View gap={6} maxWidth="400px">
-      <View gap={2}>
-        <Text variant="title-3" weight="bold">
-          Sign In
-        </Text>
-        <Text variant="body-2" color="neutral-faded">
-          Connect your wallet to access LoRA training features.
-        </Text>
-      </View>
-
       {error && <Alert color="critical">{error}</Alert>}
 
       {!isConnected ? (
