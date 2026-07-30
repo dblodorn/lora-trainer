@@ -62,7 +62,7 @@ export default function ArenaChannelResults({
           style: {
             position: "sticky",
             top: 0,
-            zIndex: 10,
+            zIndex: 20,
             backgroundColor: "var(--rs-color-background-page, #ffffff)",
             borderBottom: "1px solid var(--rs-color-border-neutral-faded, rgba(0,0,0,0.08))",
           },
