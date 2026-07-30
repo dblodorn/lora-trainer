@@ -51,7 +51,7 @@ export default function GenerateImagesTile({ onClick, images }: GenerateImagesTi
 
         {/* Height structure — square + caption area (same as image tiles) */}
         <div style={{ width: "100%", aspectRatio: "1", position: "relative", zIndex: 2 }}>
-          {/* CTA centered in the square area, with top padding = half caption height */}
+          {/* CTA centered in the square area */}
           <div
             style={{
               position: "absolute",
@@ -62,12 +62,12 @@ export default function GenerateImagesTile({ onClick, images }: GenerateImagesTi
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              paddingTop: 4,
+              paddingTop: 24,
             }}
           >
             <View gap={2} align="center">
               <CirclePlus size={22} color="#000000" />
-              <Text variant="body-2" color="primary">
+              <Text variant="body-2">
                 Generate Images
               </Text>
             </View>
