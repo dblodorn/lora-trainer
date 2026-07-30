@@ -1,4 +1,5 @@
 import { View, Text, Link } from "reshaped";
+import NextImage from "next/image";
 import ImageCard from "./ImageCard";
 import type { ArenaImage } from "./types";
 
@@ -54,20 +55,29 @@ export default function ArenaChannelResults({
   return (
     <View gap={6}>
       <View gap={2}>
-        <Link
-          href={channel.url}
-          attributes={{
-            target: "_blank",
-            rel: "noopener noreferrer",
-            style: {
-              color: "var(--rs-color-foreground-neutral)"
-            }
-          }}
-        >
-          <Text variant="body-1" weight="bold" color="neutral">{channel.title}</Text>
-        </Link>
+        <View direction="row" gap={2} align="center">
+          <NextImage
+            src="/are-na-logo.png"
+            alt="are.na"
+            width={30}
+            height={30}
+            style={{ borderRadius: 4, flexShrink: 0 }}
+          />
+          <Link
+            href={channel.url}
+            attributes={{
+              target: "_blank",
+              rel: "noopener noreferrer",
+              style: {
+                color: "var(--rs-color-foreground-neutral)",
+              },
+            }}
+          >
+            <Text variant="body-1" weight="bold" color="neutral">{channel.title}</Text>
+          </Link>
+        </View>
         <Text variant="body-2" color="neutral-faded">
-          {total} images
+          {selectedImages.length} / {total} images selected
         </Text>
       </View>
 
