@@ -118,12 +118,6 @@ export default function GenerateModal({
     <Modal active={active} onClose={onClose} position="center" padding={6} size="640px">
       <View gap={4} direction="column">
         <View gap={1}>
-          <Text variant="body-2" color="neutral-faded">
-            Your prompt will include: &ldquo;... in the style of {triggerWord}&rdquo;
-          </Text>
-        </View>
-
-        <View gap={1}>
           <TextArea
             name="prompt"
             value={prompt}
@@ -134,9 +128,26 @@ export default function GenerateModal({
             resize="none"
             disabled={isGenerating}
           />
-          <Text variant="caption-1" color="neutral-faded" align="end">
-            {prompt.length}/500
-          </Text>
+          <View direction="row" gap={2} align="center">
+            <View.Item grow>
+              <Text
+                variant="caption-1"
+                color="neutral-faded"
+                attributes={{
+                  style: {
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  },
+                }}
+              >
+                Your prompt will include: &ldquo;... in the style of {triggerWord}&rdquo;
+              </Text>
+            </View.Item>
+            <Text variant="caption-1" color="neutral-faded" align="end" attributes={{ style: { flexShrink: 0 } }}>
+              {prompt.length}/500
+            </Text>
+          </View>
         </View>
 
         <View gap={1}>
