@@ -64,7 +64,7 @@ export default function ArenaChannelResults({
             }
           }}
         >
-          <Text variant="body-1" weight="bold" color="neutral">{channel.slug}</Text>
+          <Text variant="body-1" weight="bold" color="neutral">{channel.title}</Text>
         </Link>
         <Text variant="body-2" color="neutral-faded">
           {total} images
