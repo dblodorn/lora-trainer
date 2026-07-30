@@ -65,7 +65,7 @@ export default function SignInFlow({ onSuccess }: SignInFlowProps) {
   };
 
   return (
-    <View gap={6} maxWidth="400px">
+    <View gap={6} maxWidth="400px" attributes={{ style: { minWidth: 280 } }}>
       {error && <Alert color="critical">{error}</Alert>}
 
       {!isConnected ? (
