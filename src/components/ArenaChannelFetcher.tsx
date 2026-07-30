@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { View, Alert } from "reshaped";
+import { useRouter } from "next/router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAccount } from "wagmi";
 import { isAddressEqual, type Address } from "viem";
@@ -24,6 +25,7 @@ export type TrainingPhase =
   | "failed";
 
 export default function ArenaChannelFetcher() {
+  const router = useRouter();
   const [submittedUrl, setSubmittedUrl] = useState("");
   const [trainingRequestId, setTrainingRequestId] = useState<string | null>(
     null,
@@ -72,6 +74,27 @@ export default function ArenaChannelFetcher() {
   });
 
   const selectedImages = useWatch({ control, name: "selectedImages" });
+
+  // Seed training view from URL query param
+  useEffect(() => {
+    const channelParam = router.query.channel;
+    if (channelParam && typeof channelParam === "string") {
+      setValue("url", channelParam);
+      setSubmittedUrl(channelParam);
+    } else if (submittedUrl) {
+      // Channel param was cleared — reset to landing state
+      setSubmittedUrl("");
+      setTrainingRequestId(null);
+      setTrainingLoraId(null);
+      setTrainingPhase("idle");
+      setTrainingError(null);
+      hasSavedRef.current = false;
+      setValue("url", "");
+      setValue("selectedImages", []);
+      setValue("triggerWord", "");
+      setValue("trainingSteps", 1000);
+    }
+  }, [router.query.channel]);
 
   const { data, isLoading, error } = trpc.arena.getChannelImages.useQuery(
     { url: submittedUrl },
@@ -185,6 +208,11 @@ export default function ArenaChannelFetcher() {
   const onSubmit = (formData: FormData) => {
     if (formData.url.trim()) {
       setSubmittedUrl(formData.url.trim());
+      router.replace(
+        { query: { channel: formData.url.trim() } },
+        undefined,
+        { shallow: true },
+      );
     }
   };
 
@@ -260,6 +288,8 @@ export default function ArenaChannelFetcher() {
     setValue("selectedImages", []);
     setValue("triggerWord", "");
     setValue("trainingSteps", 1000);
+    // Clear URL query param
+    router.replace({ query: {} }, undefined, { shallow: true });
   }, [setValue]);
 
   const handleCancelTraining = useCallback(() => {
