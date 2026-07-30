@@ -10,6 +10,7 @@ import SlideshowModal from "@/components/SlideshowModal";
 import ArenaChannelBadge from "@/components/ArenaChannelBadge";
 import TrainingImagesBadge from "@/components/TrainingImagesBadge";
 import GenerateImagesTile from "@/components/GenerateImagesTile";
+import LoraUrlCopyBadge from "@/components/LoraUrlCopyBadge";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
@@ -107,12 +108,17 @@ export default function LoraDetailPage() {
                     {formatDate(lora.createdAt)}
                   </Text>
                 </View>
-                {lora.arenaChannelUrl && lora.arenaChannelTitle && (
-                  <ArenaChannelBadge
-                    title={lora.arenaChannelTitle}
-                    url={lora.arenaChannelUrl}
-                  />
-                )}
+                <View direction="row" gap={2} wrap>
+                  {lora.arenaChannelUrl && lora.arenaChannelTitle && (
+                    <ArenaChannelBadge
+                      title={lora.arenaChannelTitle}
+                      url={lora.arenaChannelUrl}
+                    />
+                  )}
+                  {lora.loraWeightsUrl && (
+                    <LoraUrlCopyBadge url={lora.loraWeightsUrl} />
+                  )}
+                </View>
               </View>
             </View.Item>
 
