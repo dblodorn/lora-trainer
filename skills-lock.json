@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "fal-ai-media": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/fal-ai-media/SKILL.md",
+      "computedHash": "b694dbb54e265bfbe7b27507de51c3841d37a24936b8383ce11a16dde38dba49"
+    }
+  }
+}

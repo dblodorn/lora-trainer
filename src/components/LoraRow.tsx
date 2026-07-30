@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { View, Text, Button, Link } from "reshaped";
+import { View, Text, Button } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import ArenaChannelBadge from "./ArenaChannelBadge";
@@ -34,17 +33,9 @@ export default function LoraRow({
   arenaChannelUrl,
   arenaChannelTitle,
 }: LoraRowProps) {
-  const [copied, setCopied] = useState(false);
   const maxThumbnails = 4;
   const visibleImages = imageUrls.slice(0, maxThumbnails);
   const overflow = imageUrls.length - maxThumbnails;
-
-  const handleCopy = () => {
-    if (!loraWeightsUrl) return;
-    navigator.clipboard.writeText(loraWeightsUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <View
@@ -113,25 +104,10 @@ export default function LoraRow({
       {/* Actions */}
       <View direction="row" gap={2}>
         <NextLink href={`/loras/${id}`} passHref legacyBehavior>
-          <Button as="a" color="primary" size="small">
+          <Button as="a" color="primary" size="medium">
             View
           </Button>
         </NextLink>
-        {loraWeightsUrl && (
-          <>
-            <Button variant="ghost" size="small" onClick={handleCopy}>
-              {copied ? "Copied" : "Copy URL"}
-            </Button>
-            <Link
-              href={loraWeightsUrl}
-              attributes={{ target: "_blank", rel: "noopener noreferrer" }}
-            >
-              <Button variant="ghost" size="small">
-                Download
-              </Button>
-            </Link>
-          </>
-        )}
       </View>
     </View>
   );

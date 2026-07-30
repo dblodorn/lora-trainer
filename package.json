@@ -32,6 +32,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.60.0",
     "reshaped": "^3.9.0",
+    "usehooks-ts": "^3.1.1",
     "viem": "^2.45.2",
     "wagmi": "^3.4.3",
     "zod": "^3.22.4"
