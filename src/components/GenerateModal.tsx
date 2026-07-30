@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, Button, Modal, TextField, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
+import { View, Text, Button, Modal, TextArea, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
 import { trpc } from "@/utils/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useAuthModal } from "./AuthModalProvider";
@@ -62,13 +62,11 @@ export default function GenerateModal({
         })),
       );
       setNsfwWarning(data.nsfwFiltered);
-      // Invalidate queries so gallery refreshes
       utils.generate.listByLora.invalidate({ loraTrainingId: loraId });
       utils.generate.remaining.invalidate();
     },
   });
 
-  // Reset state when modal opens
   useEffect(() => {
     if (active) {
       setGeneratedImages([]);
@@ -126,12 +124,14 @@ export default function GenerateModal({
         </View>
 
         <View gap={1}>
-          <TextField
+          <TextArea
             name="prompt"
             value={prompt}
             onChange={({ value }) => setPrompt(value)}
             placeholder="Describe the image you want to create..."
-            inputAttributes={{ maxLength: 500, rows: 3 }}
+            inputAttributes={{ maxLength: 500 }}
+            size="large"
+            resize="none"
             disabled={isGenerating}
           />
           <Text variant="caption-1" color="neutral-faded" align="end">
