@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, Button, Modal, TextField, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
+import { View, Text, Button, Modal, TextArea, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
 import { trpc } from "@/utils/trpc";
 import { authClient } from "@/lib/auth-client";
 import { useAuthModal } from "./AuthModalProvider";
@@ -62,13 +62,11 @@ export default function GenerateModal({
         })),
       );
       setNsfwWarning(data.nsfwFiltered);
-      // Invalidate queries so gallery refreshes
       utils.generate.listByLora.invalidate({ loraTrainingId: loraId });
       utils.generate.remaining.invalidate();
     },
   });
 
-  // Reset state when modal opens
   useEffect(() => {
     if (active) {
       setGeneratedImages([]);
@@ -120,20 +118,37 @@ export default function GenerateModal({
     <Modal active={active} onClose={onClose} position="center" padding={6} size="640px">
       <View gap={4} direction="column">
         <View gap={1}>
-          <Text variant="title-3">Generate Images</Text>
-          <Text variant="body-2" color="neutral-faded">
-            Your prompt will include: &ldquo;... in the style of {triggerWord}&rdquo;
-          </Text>
+          <TextArea
+            name="prompt"
+            value={prompt}
+            onChange={({ value }) => setPrompt(value)}
+            placeholder="Describe the image you want to create..."
+            inputAttributes={{ maxLength: 500 }}
+            size="large"
+            resize="none"
+            disabled={isGenerating}
+          />
+          <View direction="row" gap={2} align="center">
+            <View.Item grow>
+              <Text
+                variant="caption-1"
+                color="neutral-faded"
+                attributes={{
+                  style: {
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  },
+                }}
+              >
+                Your prompt will include: &ldquo;... in the style of {triggerWord}&rdquo;
+              </Text>
+            </View.Item>
+            <Text variant="caption-1" color="neutral-faded" align="end" attributes={{ style: { flexShrink: 0 } }}>
+              {prompt.length}/500
+            </Text>
+          </View>
         </View>
-
-        <TextField
-          name="prompt"
-          value={prompt}
-          onChange={({ value }) => setPrompt(value)}
-          placeholder="Describe the image you want to create..."
-          inputAttributes={{ maxLength: 500 }}
-          disabled={isGenerating}
-        />
 
         <View gap={1}>
           <Text variant="caption-1" color="neutral-faded">
@@ -200,18 +215,11 @@ export default function GenerateModal({
           </Text>
         </View>
 
-        <View direction="row" align="center" gap={2}>
-          {remaining !== null && !isExempt && (
-            <Text variant="caption-1" color="neutral-faded">
-              {remaining} of 8 generations remaining today
-            </Text>
-          )}
-          <View.Item grow>
-            <Text variant="caption-1" color="neutral-faded" align="end">
-              {prompt.length}/500
-            </Text>
-          </View.Item>
-        </View>
+        {remaining !== null && !isExempt && (
+          <Text variant="caption-1" color="neutral-faded">
+            {remaining} of 8 generations remaining today
+          </Text>
+        )}
 
         {!hasResults && !isGenerating && (
           <Button

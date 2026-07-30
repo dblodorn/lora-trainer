@@ -24,6 +24,8 @@ interface GeneratedImageGridProps {
   variant?: "modal" | "page";
   /** Called when a page-variant thumbnail is clicked, with the image index */
   onImageClick?: (index: number) => void;
+  /** Optional React node rendered as the first grid cell (e.g. a CTA tile) */
+  prependTile?: React.ReactNode;
 }
 
 function formatDate(iso: string): string {
@@ -41,10 +43,9 @@ export default function GeneratedImageGrid({
   images,
   variant = "page",
   onImageClick,
+  prependTile,
 }: GeneratedImageGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
-  if (images.length === 0) return null;
 
   const columns =
     variant === "modal"
@@ -53,6 +54,7 @@ export default function GeneratedImageGrid({
 
   return (
     <View direction="row" wrap gap={2}>
+      {prependTile}
       {images.map((img, index) => (
         <View.Item key={img.id} columns={columns}>
           {variant === "page" && onImageClick ? (

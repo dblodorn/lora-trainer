@@ -306,10 +306,16 @@ function randomPanVelocity(now: number): PanState {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function ImageSlideshow() {
+interface ImageSlideshowProps {
+  images?: string[];
+}
+
+export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasReady, setCanvasReady] = useState(false);
+
+  const isCustomMode = !!images;
 
   // Image URL queue
   const queueRef = useRef<string[]>([]);
@@ -345,11 +351,11 @@ export default function ImageSlideshow() {
   const phaseRef = useRef<"holding" | "transitioning" | "waiting">("holding");
   const isAdvancingRef = useRef(false);
 
-  // tRPC
+  // tRPC — only fetch random images when no custom images provided
   const utils = trpc.useUtils();
   const { data: initialData } = trpc.slideshow.randomImages.useQuery(
     { count: BATCH_SIZE },
-    { refetchOnWindowFocus: false, staleTime: Infinity },
+    { refetchOnWindowFocus: false, staleTime: Infinity, enabled: !isCustomMode },
   );
 
   // Fetch more images lazily
@@ -370,12 +376,14 @@ export default function ImageSlideshow() {
     }
   }, [utils]);
 
-  // Seed queue from initial data
+  // Seed queue from custom images or fetched data
   useEffect(() => {
-    if (initialData?.urls && initialData.urls.length > 0) {
+    if (isCustomMode && images) {
+      queueRef.current = [...images];
+    } else if (initialData?.urls && initialData.urls.length > 0) {
       queueRef.current = [...initialData.urls];
     }
-  }, [initialData]);
+  }, [images, initialData, isCustomMode]);
 
   // Get the next image URL from the queue, wrapping around
   const getNextUrl = useCallback((): string | null => {
@@ -384,14 +392,16 @@ export default function ImageSlideshow() {
     const idx = currentIndexRef.current % queue.length;
     currentIndexRef.current = idx + 1;
 
-    // Trigger refetch when running low
-    const remaining = queue.length - currentIndexRef.current;
-    if (remaining <= QUEUE_REFETCH_THRESHOLD) {
-      fetchMore();
+    // Only fetch more when not in custom mode
+    if (!isCustomMode) {
+      const remaining = queue.length - currentIndexRef.current;
+      if (remaining <= QUEUE_REFETCH_THRESHOLD) {
+        fetchMore();
+      }
     }
 
     return queue[idx];
-  }, [fetchMore]);
+  }, [fetchMore, isCustomMode]);
 
   // ---------------------------------------------------------------------------
   // WebGL initialisation + animation loop
@@ -509,9 +519,15 @@ export default function ImageSlideshow() {
 
   // ---------------------------------------------------------------------------
   // Animation loop — starts once initial data arrives
-  // ---------------------------------------------------------------------------
+  // Animation loop — starts once images are available
+  // (either from tRPC fetch or from custom images prop)
   useEffect(() => {
-    if (!initialData?.urls || initialData.urls.length < 2) return;
+    // In custom mode, boot as soon as the queue is seeded
+    if (isCustomMode) {
+      if (queueRef.current.length === 0) return;
+    } else {
+      if (!initialData?.urls || initialData.urls.length < 2) return;
+    }
 
     const gl = glRef.current;
     if (!gl || !programRef.current) return;
@@ -716,7 +732,7 @@ export default function ImageSlideshow() {
       cancelled = true;
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [initialData, getNextUrl]);
+  }, [initialData, getNextUrl, images, isCustomMode]);
 
   return (
     <div
