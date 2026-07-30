@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Badge } from "reshaped";
+import { Actionable, Badge, View } from "reshaped";
 import { Copy, CopyCheck } from "lucide-react";
 
 interface LoraUrlCopyBadgeProps {
@@ -24,7 +24,7 @@ export default function LoraUrlCopyBadge({
   };
 
   return (
-    <View
+    <Actionable
       onClick={handleCopy}
       attributes={{
         style: {
@@ -58,6 +58,6 @@ export default function LoraUrlCopyBadge({
           {copied ? <CopyCheck size={12} /> : <Copy size={12} />}
         </View>
       </Badge>
-    </View>
+    </Actionable>
   );
 }
