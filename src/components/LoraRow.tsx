@@ -104,7 +104,7 @@ export default function LoraRow({
       {/* Actions */}
       <View direction="row" gap={2}>
         <NextLink href={`/loras/${id}`} passHref legacyBehavior>
-          <Button as="a" color="primary" size="medium">
+          <Button as="a" color="primary" size="medium" attributes={{ style: { width: 120 } }}>
             View
           </Button>
         </NextLink>
