@@ -125,14 +125,19 @@ export default function GenerateModal({
           </Text>
         </View>
 
-        <TextField
-          name="prompt"
-          value={prompt}
-          onChange={({ value }) => setPrompt(value)}
-          placeholder="Describe the image you want to create..."
-          inputAttributes={{ maxLength: 500 }}
-          disabled={isGenerating}
-        />
+        <View gap={1}>
+          <TextField
+            name="prompt"
+            value={prompt}
+            onChange={({ value }) => setPrompt(value)}
+            placeholder="Describe the image you want to create..."
+            inputAttributes={{ maxLength: 500, rows: 3 }}
+            disabled={isGenerating}
+          />
+          <Text variant="caption-1" color="neutral-faded" align="end">
+            {prompt.length}/500
+          </Text>
+        </View>
 
         <View gap={1}>
           <Text variant="caption-1" color="neutral-faded">
@@ -199,18 +204,11 @@ export default function GenerateModal({
           </Text>
         </View>
 
-        <View direction="row" align="center" gap={2}>
-          {remaining !== null && !isExempt && (
-            <Text variant="caption-1" color="neutral-faded">
-              {remaining} of 8 generations remaining today
-            </Text>
-          )}
-          <View.Item grow>
-            <Text variant="caption-1" color="neutral-faded" align="end">
-              {prompt.length}/500
-            </Text>
-          </View.Item>
-        </View>
+        {remaining !== null && !isExempt && (
+          <Text variant="caption-1" color="neutral-faded">
+            {remaining} of 8 generations remaining today
+          </Text>
+        )}
 
         {!hasResults && !isGenerating && (
           <Button
