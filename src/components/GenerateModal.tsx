@@ -120,7 +120,6 @@ export default function GenerateModal({
     <Modal active={active} onClose={onClose} position="center" padding={6} size="640px">
       <View gap={4} direction="column">
         <View gap={1}>
-          <Text variant="title-3">Generate Images</Text>
           <Text variant="body-2" color="neutral-faded">
             Your prompt will include: &ldquo;... in the style of {triggerWord}&rdquo;
           </Text>
