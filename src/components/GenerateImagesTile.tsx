@@ -65,7 +65,7 @@ export default function GenerateImagesTile({ onClick, images }: GenerateImagesTi
             }}
           >
             <View gap={2} align="center">
-              <CirclePlus size={32} color="var(--rs-color-text-neutral-faded, rgba(0,0,0,0.4))" />
+              <CirclePlus size={22} color="#000000" />
               <Text variant="body-2" color="neutral-faded">
                 Generate Images
               </Text>
