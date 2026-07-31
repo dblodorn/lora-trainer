@@ -309,7 +309,7 @@ export const generateRouter = router({
 
       const filter: Record<string, unknown> = { hidden: true };
       if (input?.walletAddress) {
-        filter.walletAddress = input.walletAddress.toLowerCase();
+        filter.walletAddress = { $regex: `^${input.walletAddress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: "i" };
       }
 
       const docs = await db

@@ -228,7 +228,7 @@ export const loraRouter = router({
 
         const filter: Record<string, unknown> = { status: "completed", hidden: true };
         if (input?.walletAddress) {
-          filter.walletAddress = input.walletAddress.toLowerCase();
+          filter.walletAddress = { $regex: `^${input.walletAddress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: "i" };
         }
 
         const docs = await db
