@@ -25,6 +25,9 @@ export default function Custom404() {
 
       {/* Content overlay */}
       <View
+        gap={8}
+        align="center"
+        justify="center"
         attributes={{
           style: {
             position: "relative",
@@ -32,17 +35,14 @@ export default function Custom404() {
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 16,
           },
         }}
       >
-        <Text variant="body-1" color="neutral-faded">
+        <Text variant="body-1" color="neutral-faded" align="center">
           Page not found
         </Text>
         <Link href="/">
-          <Text variant="body-1" color="neutral-faded">
+          <Text variant="body-1" color="neutral-faded" align="center">
             Return home
           </Text>
         </Link>
