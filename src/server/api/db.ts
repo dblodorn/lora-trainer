@@ -17,6 +17,7 @@ export interface LoraTrainingDoc {
   loraWeightsUrl: string | null;
   arenaChannelUrl: string | null;
   arenaChannelTitle: string | null;
+  hidden: boolean;
   status: "pending" | "completed" | "failed";
   createdAt: string;
 }
@@ -86,7 +87,7 @@ async function ensureIndexes(db: Db): Promise<void> {
   // lora_trainings indexes
   const loraCol = db.collection<LoraTrainingDoc>("lora_trainings");
   await loraCol.createIndex({ requestId: 1 }, { unique: true });
-  await loraCol.createIndex({ status: 1 });
+  await loraCol.createIndex({ status: 1, hidden: 1 });
   await loraCol.createIndex({ createdAt: -1 });
 
   // generated_images indexes

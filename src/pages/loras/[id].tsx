@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import { View, Text, Button, Alert, Loader } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import { isAddress, isAddressEqual } from "viem";
+import { useAccount } from "wagmi";
 import { trpc } from "@/utils/trpc";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
@@ -11,6 +13,7 @@ import ArenaChannelBadge from "@/components/ArenaChannelBadge";
 import TrainingImagesBadge from "@/components/TrainingImagesBadge";
 import GenerateImagesTile from "@/components/GenerateImagesTile";
 import LoraUrlCopyBadge from "@/components/LoraUrlCopyBadge";
+import LoraHideToggle from "@/components/LoraHideToggle";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 function formatDate(iso: string): string {
@@ -28,6 +31,7 @@ export default function LoraDetailPage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [slideshowIndex, setSlideshowIndex] = useState<number | null>(null);
   const [trainingSlideshowIndex, setTrainingSlideshowIndex] = useState<number | null>(null);
+  const { address: connectedAddress } = useAccount();
 
   const loraQuery = trpc.lora.getById.useQuery(
     { id: id! },
@@ -75,6 +79,8 @@ export default function LoraDetailPage() {
   const lora = loraQuery.data;
   if (!lora) return null;
 
+  const isOwner = !!(connectedAddress && lora.walletAddress && isAddress(lora.walletAddress) && isAddressEqual(connectedAddress, lora.walletAddress as `0x${string}`));
+
   const isCompleted = lora.status === "completed" && !!lora.loraWeightsUrl;
   const images = imagesQuery.data ?? [];
 
@@ -121,6 +127,10 @@ export default function LoraDetailPage() {
                 </View>
               </View>
             </View.Item>
+
+            {isOwner && (
+              <LoraHideToggle id={lora.id} hidden={lora.hidden ?? false} />
+            )}
 
           </View>
 
