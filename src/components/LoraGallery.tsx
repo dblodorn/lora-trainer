@@ -3,31 +3,10 @@ import NextLink from "next/link";
 import { trpc } from "@/utils/trpc";
 import LoraRow from "./LoraRow";
 
-interface LoraRowData {
-  id: string;
-  requestId: string;
-  walletAddress: string;
-  triggerWord: string;
-  steps: number;
-  imageUrls: string[];
-  imageUrlsSpaces: string[];
-  trainingZipUrl: string | null;
-  loraWeightsUrl: string | null;
-  arenaChannelUrl: string | null;
-  arenaChannelTitle: string | null;
-  createdAt: string;
-}
+export default function LoraGallery() {
+  const { data, isLoading, error } = trpc.lora.list.useQuery();
 
-interface LoraGalleryProps {
-  initialLoras?: LoraRowData[];
-}
-
-export default function LoraGallery({ initialLoras }: LoraGalleryProps) {
-  const { data, isLoading, error } = trpc.lora.list.useQuery(undefined, {
-    initialData: initialLoras,
-  });
-
-  if (isLoading && !initialLoras) {
+  if (isLoading) {
     return (
       <View align="center" justify="center" attributes={{ style: { height: "100%" } }}>
         <Loader />
@@ -68,6 +47,7 @@ export default function LoraGallery({ initialLoras }: LoraGalleryProps) {
           id={lora.id}
           triggerWord={lora.triggerWord}
           loraWeightsUrl={lora.loraWeightsUrl}
+
           imageUrls={lora.imageUrls}
           steps={lora.steps}
           createdAt={lora.createdAt}

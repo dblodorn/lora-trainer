@@ -5,10 +5,7 @@ import NextLink from "next/link";
 import NextImage from "next/image";
 import { isAddress, isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
-import { GetServerSideProps } from "next";
 import { trpc } from "@/utils/trpc";
-import { getDb } from "@/server/api/db";
-import { ObjectId } from "mongodb";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
@@ -28,7 +25,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function LoraDetailPage({ initialLora, initialImages }: { initialLora?: any; initialImages?: any[] }) {
+export default function LoraDetailPage() {
   const router = useRouter();
   const id = router.query.id as string | undefined;
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -38,12 +35,12 @@ export default function LoraDetailPage({ initialLora, initialImages }: { initial
 
   const loraQuery = trpc.lora.getById.useQuery(
     { id: id! },
-    { enabled: !!id, initialData: initialLora },
+    { enabled: !!id },
   );
 
   const imagesQuery = trpc.generate.listByLora.useQuery(
     { loraTrainingId: id! },
-    { enabled: !!id, initialData: initialImages },
+    { enabled: !!id },
   );
 
   if (!id) {
@@ -240,82 +237,3 @@ export default function LoraDetailPage({ initialLora, initialImages }: { initial
     </View>
   );
 }
-
-interface LoraSsrData {
-  id: string;
-  requestId: string;
-  walletAddress: string;
-  triggerWord: string;
-  steps: number;
-  imageUrls: string[];
-  imageUrlsSpaces: string[];
-  trainingZipUrl: string | null;
-  loraWeightsUrl: string | null;
-  arenaChannelUrl: string | null;
-  arenaChannelTitle: string | null;
-  hidden: boolean;
-  status: string;
-  createdAt: string;
-}
-
-interface GeneratedImageSsrData {
-  id: string;
-  walletAddress: string;
-  prompt: string;
-  imageUrl: string;
-  cdnUrl: string | null;
-  width: number | null;
-  height: number | null;
-  seed: string | null;
-  loraScaleValue: string | null;
-  loraScaleName: string | null;
-  createdAt: string;
-}
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const id = context.params?.id as string;
-  if (!id) return { notFound: true };
-
-  const db = await getDb();
-  const doc = await db.collection("lora_trainings").findOne({ _id: new ObjectId(id) });
-  if (!doc) return { notFound: true };
-
-  const initialLora: LoraSsrData = {
-    id: doc._id.toString(),
-    requestId: doc.requestId,
-    walletAddress: doc.walletAddress,
-    triggerWord: doc.triggerWord,
-    steps: doc.steps,
-    imageUrls: doc.imageUrls,
-    imageUrlsSpaces: doc.imageUrlsSpaces ?? [],
-    trainingZipUrl: doc.trainingZipUrl ?? null,
-    loraWeightsUrl: doc.loraWeightsUrl,
-    arenaChannelUrl: doc.arenaChannelUrl,
-    arenaChannelTitle: doc.arenaChannelTitle,
-    hidden: doc.hidden ?? false,
-    status: doc.status,
-    createdAt: doc.createdAt,
-  };
-
-  const imageDocs = await db
-    .collection("generated_images")
-    .find({ loraTrainingId: id })
-    .sort({ createdAt: -1 })
-    .toArray();
-
-  const initialImages: GeneratedImageSsrData[] = imageDocs.map((img) => ({
-    id: img._id.toString(),
-    walletAddress: img.walletAddress,
-    prompt: img.prompt,
-    imageUrl: img.imageUrl,
-    cdnUrl: img.cdnUrl ?? null,
-    width: img.imageWidth,
-    height: img.imageHeight,
-    seed: img.seed,
-    loraScaleValue: img.loraScaleValue,
-    loraScaleName: img.loraScaleName,
-    createdAt: img.createdAt,
-  }));
-
-  return { props: { initialLora, initialImages } };
-};
