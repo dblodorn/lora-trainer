@@ -135,7 +135,9 @@ export default function LoraDetailPage() {
             </View.Item>
 
             {isOwner && (
-              <LoraHideToggle id={lora.id} hidden={lora.hidden ?? false} />
+              <div style={{ alignSelf: "flex-start" }}>
+                <LoraHideToggle id={lora.id} hidden={lora.hidden ?? false} />
+              </div>
             )}
 
           </View>
