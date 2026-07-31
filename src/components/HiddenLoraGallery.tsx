@@ -3,10 +3,17 @@ import NextLink from "next/link";
 import { trpc } from "@/utils/trpc";
 import LoraRow from "./LoraRow";
 
-export default function HiddenLoraGallery() {
-  const { data, isLoading, error } = trpc.lora.listHidden.useQuery();
+interface HiddenLoraGalleryProps {
+  walletAddress?: string;
+}
 
-  if (isLoading) {
+export default function HiddenLoraGallery({ walletAddress }: HiddenLoraGalleryProps) {
+  const { data, isLoading, error } = trpc.lora.listHidden.useQuery(
+    { walletAddress },
+    { enabled: !!walletAddress },
+  );
+
+  if (isLoading || !walletAddress) {
     return (
       <View align="center" justify="center" attributes={{ style: { height: "100%" } }}>
         <Loader />

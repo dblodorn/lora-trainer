@@ -8,7 +8,10 @@ import { LEFT_NAV_WIDTH } from "@/components/AuthLeftNav";
 
 export default function HiddenGenerationsPage() {
   const { address: connectedAddress } = useAccount();
-  const { data, isLoading, error } = trpc.generate.listHiddenImages.useQuery();
+  const { data, isLoading, error } = trpc.generate.listHiddenImages.useQuery(
+    { walletAddress: connectedAddress },
+    { enabled: !!connectedAddress },
+  );
 
   if (isLoading) {
     return (

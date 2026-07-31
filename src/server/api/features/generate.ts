@@ -302,12 +302,19 @@ export const generateRouter = router({
       return { success: true };
     }),
 
-  listHiddenImages: publicProcedure.query(async () => {
+  listHiddenImages: publicProcedure
+    .input(z.object({ walletAddress: z.string().optional() }).optional())
+    .query(async ({ input }) => {
       const db = await getDb();
+
+      const filter: Record<string, unknown> = { hidden: true };
+      if (input?.walletAddress) {
+        filter.walletAddress = input.walletAddress.toLowerCase();
+      }
 
       const docs = await db
         .collection<GeneratedImageDoc>("generated_images")
-        .find({ hidden: true })
+        .find(filter)
         .sort({ createdAt: -1 })
         .toArray();
 
