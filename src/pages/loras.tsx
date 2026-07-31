@@ -32,7 +32,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
     .toArray();
 
   const initialLoras = docs.map((doc) => ({
-    id: doc._id,
+    id: doc._id.toString(),
     requestId: doc.requestId,
     walletAddress: doc.walletAddress,
     triggerWord: doc.triggerWord,

@@ -280,7 +280,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   if (!doc) return { notFound: true };
 
   const initialLora: LoraSsrData = {
-    id: doc._id,
+    id: doc._id.toString(),
     requestId: doc.requestId,
     walletAddress: doc.walletAddress,
     triggerWord: doc.triggerWord,
@@ -303,7 +303,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     .toArray();
 
   const initialImages: GeneratedImageSsrData[] = imageDocs.map((img) => ({
-    id: img._id,
+    id: img._id.toString(),
     walletAddress: img.walletAddress,
     prompt: img.prompt,
     imageUrl: img.imageUrl,
