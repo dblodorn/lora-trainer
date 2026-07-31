@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, Card, Badge } from "reshaped";
 import NextImage from "next/image";
+import { Maximize2 } from "lucide-react";
 import GeneratedImageHideToggle from "./GeneratedImageHideToggle";
 
 interface GeneratedImage {
@@ -68,61 +69,8 @@ export default function GeneratedImageGrid({
       {prependTile}
       {images.map((img, index) => (
         <View.Item key={img.id} columns={columns}>
-          {variant === "page" && onImageClick ? (
-            <div
-              onMouseEnter={() => setHoveredId(img.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              onClick={() => onImageClick(index)}
-              style={{ cursor: "pointer" }}
-            >
-              <Card padding={0}>
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    aspectRatio: "1",
-                    overflow: "hidden",
-                    borderRadius: "var(--rs-radius-medium)",
-                  }}
-                >
-                  <NextImage
-                    src={displayUrl(img)}
-                    alt={img.prompt}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    style={{ objectFit: hoveredId === img.id ? "contain" : "cover" }}
-                  />
-                </div>
-                <View padding={2} gap={1}>
-                  <Text variant="caption-1" maxLines={2}>
-                    {img.prompt}
-                  </Text>
-                  <View direction="row" align="center" gap={2}>
-                    <View.Item grow>
-                      <View direction="row" align="center" gap={2}>
-                        <Text variant="caption-1" color="neutral-faded">
-                          {formatDate(img.createdAt)}
-                        </Text>
-                        {img.loraScaleName && (
-                          <Badge size="small" color="primary" variant="faded">
-                            {img.loraScaleName}
-                          </Badge>
-                        )}
-                      </View>
-                    </View.Item>
-                    {isOwner(currentWallet, img.walletAddress) && (
-                      <GeneratedImageHideToggle id={img.id} hidden={img.hidden ?? false} />
-                    )}
-                  </View>
-                </View>
-              </Card>
-            </div>
-          ) : (
-            <a
-              href={displayUrl(img)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+          {variant === "modal" ? (
+            <a href={displayUrl(img)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
               <Card padding={0}>
                 <div
                   style={{
@@ -141,32 +89,104 @@ export default function GeneratedImageGrid({
                     style={{ objectFit: "cover" }}
                   />
                 </div>
-                {variant === "page" && (
-                  <View padding={2} gap={1}>
-                    <Text variant="caption-1" maxLines={2}>
-                      {img.prompt}
-                    </Text>
-                    <View direction="row" align="center" gap={2}>
-                      <View.Item grow>
-                        <View direction="row" align="center" gap={2}>
-                          <Text variant="caption-1" color="neutral-faded">
-                            {formatDate(img.createdAt)}
-                          </Text>
-                          {img.loraScaleName && (
-                            <Badge size="small" color="primary" variant="faded">
-                              {img.loraScaleName}
-                            </Badge>
-                          )}
-                        </View>
-                      </View.Item>
-                      {isOwner(currentWallet, img.walletAddress) && (
-                        <GeneratedImageHideToggle id={img.id} hidden={img.hidden ?? false} />
-                      )}
-                    </View>
-                  </View>
-                )}
               </Card>
             </a>
+          ) : (
+            <Card padding={0} attributes={{ style: { position: "relative" } }}>
+            {/* Image area — hover target */}
+            <div
+              onMouseEnter={() => setHoveredId(img.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              style={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "1",
+                overflow: "hidden",
+                borderRadius: "var(--rs-radius-medium)",
+              }}
+            >
+              <NextImage
+                src={displayUrl(img)}
+                alt={img.prompt}
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                style={{ objectFit: hoveredId === img.id ? "contain" : "cover" }}
+              />
+
+              {/* Hover overlay buttons */}
+              {hoveredId === img.id && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 10,
+                    pointerEvents: "none",
+                  }}
+                >
+                  {/* Maximize button — upper right */}
+                  <div
+                    onClick={() => onImageClick?.(index)}
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      backgroundColor: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      pointerEvents: "auto",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    <Maximize2 size={14} color="#000" />
+                  </div>
+
+                  {/* Hide toggle — lower right */}
+                  {isOwner(currentWallet, img.walletAddress) && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 6,
+                        right: 6,
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        backgroundColor: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        pointerEvents: "auto",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      <GeneratedImageHideToggle id={img.id} hidden={img.hidden ?? false} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Caption */}
+            <View padding={2} gap={1}>
+              <Text variant="caption-1" maxLines={2}>
+                {img.prompt}
+              </Text>
+              <View direction="row" align="center" gap={2}>
+                <Text variant="caption-1" color="neutral-faded">
+                  {formatDate(img.createdAt)}
+                </Text>
+                {img.loraScaleName && (
+                  <Badge size="small" color="primary" variant="faded">
+                    {img.loraScaleName}
+                  </Badge>
+                )}
+              </View>
+            </View>
+          </Card>
           )}
         </View.Item>
       ))}
