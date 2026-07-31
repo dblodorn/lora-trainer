@@ -4,8 +4,8 @@ import { View, Text, Button, Alert, Loader } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import { isAddress, isAddressEqual } from "viem";
-import { useAccount } from "wagmi";
 import { trpc } from "@/utils/trpc";
+import { authClient } from "@/lib/auth-client";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
@@ -31,7 +31,8 @@ export default function LoraDetailPage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [slideshowIndex, setSlideshowIndex] = useState<number | null>(null);
   const [trainingSlideshowIndex, setTrainingSlideshowIndex] = useState<number | null>(null);
-  const { address: connectedAddress } = useAccount();
+  const { data: session } = authClient.useSession();
+  const sessionWallet = (session?.user as { walletAddress?: string } | undefined)?.walletAddress;
 
   const loraQuery = trpc.lora.getById.useQuery(
     { id: id! },
@@ -79,7 +80,7 @@ export default function LoraDetailPage() {
   const lora = loraQuery.data;
   if (!lora) return null;
 
-  const isOwner = !!(connectedAddress && lora.walletAddress && isAddress(lora.walletAddress) && isAddressEqual(connectedAddress, lora.walletAddress as `0x${string}`));
+  const isOwner = !!(sessionWallet && lora.walletAddress && isAddress(lora.walletAddress) && isAddressEqual(sessionWallet, lora.walletAddress as `0x${string}`));
 
   const isCompleted = lora.status === "completed" && !!lora.loraWeightsUrl;
   const images = imagesQuery.data ?? [];
