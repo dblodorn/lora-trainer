@@ -25,7 +25,7 @@ export default function Custom404() {
 
       {/* Content overlay */}
       <View
-        gap={8}
+        gap={2}
         align="center"
         justify="center"
         attributes={{
