@@ -1,13 +1,13 @@
 import { View, Text, Alert, Loader, Button } from "reshaped";
 import NextLink from "next/link";
+import { isAddress, isAddressEqual } from "viem";
+import { useAccount } from "wagmi";
 import { trpc } from "@/utils/trpc";
-import { authClient } from "@/lib/auth-client";
 import LoraRow from "./LoraRow";
 
 export default function LoraGallery() {
   const { data, isLoading, error } = trpc.lora.list.useQuery();
-  const { data: session } = authClient.useSession();
-  const currentWallet = (session?.user as { walletAddress?: string } | undefined)?.walletAddress?.toLowerCase();
+  const { address: connectedAddress } = useAccount();
 
   if (isLoading) {
     return (
@@ -57,7 +57,7 @@ export default function LoraGallery() {
           arenaChannelTitle={lora.arenaChannelTitle}
           walletAddress={lora.walletAddress}
           hidden={lora.hidden}
-          isOwner={currentWallet === lora.walletAddress?.toLowerCase()}
+          isOwner={!!(connectedAddress && lora.walletAddress && isAddress(lora.walletAddress) && isAddressEqual(connectedAddress, lora.walletAddress as `0x${string}`))}
         />
       ))}
     </View>
