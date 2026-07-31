@@ -7,7 +7,7 @@ import LoraRow from "./LoraRow";
 export default function LoraGallery() {
   const { data, isLoading, error } = trpc.lora.list.useQuery();
   const { data: session } = authClient.useSession();
-  const currentWallet = session?.user?.walletAddress?.toLowerCase();
+  const currentWallet = (session?.user as { walletAddress?: string } | undefined)?.walletAddress?.toLowerCase();
 
   if (isLoading) {
     return (
