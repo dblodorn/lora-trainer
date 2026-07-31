@@ -128,12 +128,12 @@ export default function GeneratedImageGrid({
                     onClick={() => onImageClick?.(index)}
                     style={{
                       position: "absolute",
-                      top: 6,
-                      right: 6,
+                      top: 12,
+                      right: 12,
                       width: 28,
                       height: 28,
                       borderRadius: "50%",
-                      backgroundColor: "#fff",
+                      backgroundColor: "rgba(255,255,255,0.5)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -150,12 +150,12 @@ export default function GeneratedImageGrid({
                     <div
                       style={{
                         position: "absolute",
-                        bottom: 6,
-                        right: 6,
+                        bottom: 12,
+                        right: 12,
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        backgroundColor: "#fff",
+                        backgroundColor: "rgba(255,255,255,0.5)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",

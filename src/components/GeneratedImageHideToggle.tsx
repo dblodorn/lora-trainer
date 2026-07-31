@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "reshaped";
 import { Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 
@@ -38,13 +37,23 @@ export default function GeneratedImageHideToggle({ id, hidden }: GeneratedImageH
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="small"
+    <button
       onClick={handleToggle}
-      loading={justToggled && (hideMutation.isPending || unhideMutation.isPending)}
+      disabled={justToggled && (hideMutation.isPending || unhideMutation.isPending)}
+      style={{
+        background: "none",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 28,
+        height: 28,
+        lineHeight: 0,
+      }}
     >
-      {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-    </Button>
+      {hidden ? <EyeOff size={14} color="#000" /> : <Eye size={14} color="#000" />}
+    </button>
   );
 }
