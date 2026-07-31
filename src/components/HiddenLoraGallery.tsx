@@ -3,8 +3,8 @@ import NextLink from "next/link";
 import { trpc } from "@/utils/trpc";
 import LoraRow from "./LoraRow";
 
-export default function LoraGallery() {
-  const { data, isLoading, error } = trpc.lora.list.useQuery();
+export default function HiddenLoraGallery() {
+  const { data, isLoading, error } = trpc.lora.listHidden.useQuery();
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ export default function LoraGallery() {
   if (error) {
     return (
       <View padding={4}>
-        <Alert color="critical" title="Failed to load gallery">
+        <Alert color="critical" title="Failed to load hidden LoRAs">
           {error.message}
         </Alert>
       </View>
@@ -28,11 +28,11 @@ export default function LoraGallery() {
     return (
       <View align="center" justify="center" padding={10} gap={2}>
         <Text variant="body-1" color="neutral-faded">
-          No LoRAs trained yet.
+          No hidden LoRAs.
         </Text>
         <NextLink href="/" passHref legacyBehavior>
           <Button as="a" color="primary" size="small">
-            Train your first LoRA
+            Train a new LoRA
           </Button>
         </NextLink>
       </View>
@@ -47,7 +47,6 @@ export default function LoraGallery() {
           id={lora.id}
           triggerWord={lora.triggerWord}
           loraWeightsUrl={lora.loraWeightsUrl}
-
           imageUrls={lora.imageUrls}
           steps={lora.steps}
           createdAt={lora.createdAt}
