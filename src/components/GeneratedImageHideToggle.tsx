@@ -53,7 +53,7 @@ export default function GeneratedImageHideToggle({ id, hidden }: GeneratedImageH
         lineHeight: 0,
       }}
     >
-      {hidden ? <EyeOff size={14} color="#000" /> : <Eye size={14} color="#000" />}
+      {hidden ? <EyeOff size={14} color="#fff" /> : <Eye size={14} color="#fff" />}
     </button>
   );
 }

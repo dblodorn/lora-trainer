@@ -133,7 +133,7 @@ export default function GeneratedImageGrid({
                       width: 28,
                       height: 28,
                       borderRadius: "50%",
-                      backgroundColor: "rgba(255,255,255,0.5)",
+                      backgroundColor: "rgba(0,0,0,0.75)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -142,7 +142,7 @@ export default function GeneratedImageGrid({
                       boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
                     }}
                   >
-                    <Maximize2 size={14} color="#000" />
+                    <Maximize2 size={14} color="#fff" />
                   </div>
 
                   {/* Hide toggle — lower right */}
@@ -155,7 +155,7 @@ export default function GeneratedImageGrid({
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        backgroundColor: "rgba(255,255,255,0.5)",
+                        backgroundColor: "rgba(0,0,0,0.75)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
