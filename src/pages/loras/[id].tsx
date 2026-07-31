@@ -8,6 +8,7 @@ import { useAccount } from "wagmi";
 import { GetServerSideProps } from "next";
 import { trpc } from "@/utils/trpc";
 import { getDb } from "@/server/api/db";
+import { ObjectId } from "mongodb";
 import GenerateModal from "@/components/GenerateModal";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import SlideshowModal from "@/components/SlideshowModal";
@@ -276,7 +277,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   if (!id) return { notFound: true };
 
   const db = await getDb();
-  const doc = await db.collection("lora_trainings").findOne({ _id: id });
+  const doc = await db.collection("lora_trainings").findOne({ _id: new ObjectId(id) });
   if (!doc) return { notFound: true };
 
   const initialLora: LoraSsrData = {
