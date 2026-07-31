@@ -37,6 +37,7 @@ export async function createPendingLora(params: {
     loraWeightsUrl: null,
     arenaChannelUrl: params.arenaChannelUrl ?? null,
     arenaChannelTitle: params.arenaChannelTitle ?? null,
+    hidden: false,
     status: "pending",
     createdAt: new Date().toISOString(),
   });
@@ -165,16 +166,74 @@ export const loraRouter = router({
         arenaChannelUrl: doc.arenaChannelUrl,
         arenaChannelTitle: doc.arenaChannelTitle,
         status: doc.status,
+        hidden: doc.hidden ?? false,
         createdAt: doc.createdAt,
       };
     }),
 
-  list: publicProcedure.query(async () => {
+  hide: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
+      const walletAddress = ctx.session.user.walletAddress;
+
+      const doc = await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .findOne({ _id: input.id });
+
+      if (!doc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "LoRA not found." });
+      }
+
+      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this LoRA." });
+      }
+
+      await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .updateOne({ _id: input.id }, { $set: { hidden: true } });
+
+      return { success: true };
+    }),
+
+  unhide: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const walletAddress = ctx.session.user.walletAddress;
+
+      const doc = await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .findOne({ _id: input.id });
+
+      if (!doc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "LoRA not found." });
+      }
+
+      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this LoRA." });
+      }
+
+      await db
+        .collection<LoraTrainingDoc>("lora_trainings")
+        .updateOne({ _id: input.id }, { $set: { hidden: false } });
+
+      return { success: true };
+    }),
+
+  list: publicProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      const viewerWallet = ctx.session?.user?.walletAddress;
 
       const docs = await db
         .collection<LoraTrainingDoc>("lora_trainings")
-        .find({ status: "completed" })
+        .find({
+          status: "completed",
+          $or: [
+            { hidden: { $ne: true } },
+            ...(viewerWallet ? [{ walletAddress: viewerWallet.toLowerCase() }] : []),
+          ],
+        })
         .sort({ createdAt: -1 })
         .toArray();
 
@@ -190,6 +249,7 @@ export const loraRouter = router({
         loraWeightsUrl: doc.loraWeightsUrl,
         arenaChannelUrl: doc.arenaChannelUrl,
         arenaChannelTitle: doc.arenaChannelTitle,
+        hidden: doc.hidden ?? false,
         createdAt: doc.createdAt,
       }));
   }),

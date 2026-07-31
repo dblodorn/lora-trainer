@@ -17,6 +17,7 @@ export interface LoraTrainingDoc {
   loraWeightsUrl: string | null;
   arenaChannelUrl: string | null;
   arenaChannelTitle: string | null;
+  hidden: boolean;
   status: "pending" | "completed" | "failed";
   createdAt: string;
 }

@@ -1,10 +1,13 @@
 import { View, Text, Alert, Loader, Button } from "reshaped";
 import NextLink from "next/link";
 import { trpc } from "@/utils/trpc";
+import { authClient } from "@/lib/auth-client";
 import LoraRow from "./LoraRow";
 
 export default function LoraGallery() {
   const { data, isLoading, error } = trpc.lora.list.useQuery();
+  const { data: session } = authClient.useSession();
+  const currentWallet = session?.user?.walletAddress?.toLowerCase();
 
   if (isLoading) {
     return (
@@ -47,12 +50,14 @@ export default function LoraGallery() {
           id={lora.id}
           triggerWord={lora.triggerWord}
           loraWeightsUrl={lora.loraWeightsUrl}
-
           imageUrls={lora.imageUrls}
           steps={lora.steps}
           createdAt={lora.createdAt}
           arenaChannelUrl={lora.arenaChannelUrl}
           arenaChannelTitle={lora.arenaChannelTitle}
+          walletAddress={lora.walletAddress}
+          hidden={lora.hidden}
+          isOwner={currentWallet === lora.walletAddress?.toLowerCase()}
         />
       ))}
     </View>
