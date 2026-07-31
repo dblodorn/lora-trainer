@@ -36,6 +36,7 @@ export interface GeneratedImageDoc {
   loraScaleName: string | null;
   genWidth: number | null;
   genHeight: number | null;
+  hidden: boolean;
   createdAt: string;
 }
 
@@ -93,6 +94,6 @@ async function ensureIndexes(db: Db): Promise<void> {
   // generated_images indexes
   const imgCol = db.collection<GeneratedImageDoc>("generated_images");
   await imgCol.createIndex({ loraTrainingId: 1 });
-  await imgCol.createIndex({ walletAddress: 1 });
+  await imgCol.createIndex({ walletAddress: 1, hidden: 1 });
   await imgCol.createIndex({ createdAt: -1 });
 }

@@ -187,6 +187,7 @@ export default function LoraDetailPage() {
               images={images}
               variant="page"
               onImageClick={(index) => setSlideshowIndex(index)}
+              currentWallet={connectedAddress}
               prependTile={
                 isCompleted ? (
                   <GenerateImagesTile

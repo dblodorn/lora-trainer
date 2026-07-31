@@ -167,6 +167,7 @@ export const generateRouter = router({
           loraScaleName: getLoraScaleLabel(input.loraScale),
           genWidth: input.imageWidth,
           genHeight: input.imageHeight,
+          hidden: false,
           createdAt: now,
         });
 
@@ -202,7 +203,7 @@ export const generateRouter = router({
 
       const docs = await db
         .collection<GeneratedImageDoc>("generated_images")
-        .find({ loraTrainingId: input.loraTrainingId })
+        .find({ loraTrainingId: input.loraTrainingId, hidden: { $ne: true } })
         .sort({ createdAt: -1 })
         .toArray();
 
@@ -219,6 +220,7 @@ export const generateRouter = router({
         loraScaleName: doc.loraScaleName,
         genWidth: doc.genWidth,
         genHeight: doc.genHeight,
+        hidden: doc.hidden ?? false,
         createdAt: doc.createdAt,
       }));
     }),
@@ -248,5 +250,83 @@ export const generateRouter = router({
     const remaining = Math.max(0, RATE_LIMIT_BATCHES - batchCount);
 
     return { remaining, limit: RATE_LIMIT_BATCHES, isExempt: false };
+  }),
+
+  hideImage: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const walletAddress = ctx.session.user.walletAddress;
+
+      const doc = await db
+        .collection<GeneratedImageDoc>("generated_images")
+        .findOne({ _id: input.id });
+
+      if (!doc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Image not found." });
+      }
+
+      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this image." });
+      }
+
+      await db
+        .collection<GeneratedImageDoc>("generated_images")
+        .updateOne({ _id: input.id }, { $set: { hidden: true } });
+
+      return { success: true };
+    }),
+
+  unhideImage: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const walletAddress = ctx.session.user.walletAddress;
+
+      const doc = await db
+        .collection<GeneratedImageDoc>("generated_images")
+        .findOne({ _id: input.id });
+
+      if (!doc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Image not found." });
+      }
+
+      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this image." });
+      }
+
+      await db
+        .collection<GeneratedImageDoc>("generated_images")
+        .updateOne({ _id: input.id }, { $set: { hidden: false } });
+
+      return { success: true };
+    }),
+
+  listHiddenImages: publicProcedure.query(async () => {
+      const db = await getDb();
+
+      const docs = await db
+        .collection<GeneratedImageDoc>("generated_images")
+        .find({ hidden: true })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      return docs.map((doc) => ({
+        id: doc._id,
+        loraTrainingId: doc.loraTrainingId,
+        walletAddress: doc.walletAddress,
+        prompt: doc.prompt,
+        imageUrl: doc.imageUrl,
+        cdnUrl: doc.cdnUrl ?? null,
+        width: doc.imageWidth,
+        height: doc.imageHeight,
+        seed: doc.seed,
+        loraScaleValue: doc.loraScaleValue,
+        loraScaleName: doc.loraScaleName,
+        genWidth: doc.genWidth,
+        genHeight: doc.genHeight,
+        hidden: doc.hidden ?? true,
+        createdAt: doc.createdAt,
+      }));
   }),
 });

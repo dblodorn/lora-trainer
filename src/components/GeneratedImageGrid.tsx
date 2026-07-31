@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, Card, Badge } from "reshaped";
 import NextImage from "next/image";
+import GeneratedImageHideToggle from "./GeneratedImageHideToggle";
 
 interface GeneratedImage {
   id: string;
@@ -11,6 +12,8 @@ interface GeneratedImage {
   width?: number | null;
   height?: number | null;
   loraScaleName?: string | null;
+  walletAddress?: string;
+  hidden?: boolean;
 }
 
 /** Prefer CDN URL, fallback to original imageUrl */
@@ -26,6 +29,8 @@ interface GeneratedImageGridProps {
   onImageClick?: (index: number) => void;
   /** Optional React node rendered as the first grid cell (e.g. a CTA tile) */
   prependTile?: React.ReactNode;
+  /** Current viewer's wallet address — enables hide toggle when it matches an image's wallet */
+  currentWallet?: string;
 }
 
 function formatDate(iso: string): string {
@@ -39,11 +44,17 @@ function formatDate(iso: string): string {
   });
 }
 
+function isOwner(currentWallet: string | undefined, imgWallet: string | undefined): boolean {
+  if (!currentWallet || !imgWallet) return false;
+  return currentWallet.toLowerCase() === imgWallet.toLowerCase();
+}
+
 export default function GeneratedImageGrid({
   images,
   variant = "page",
   onImageClick,
   prependTile,
+  currentWallet,
 }: GeneratedImageGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -87,13 +98,20 @@ export default function GeneratedImageGrid({
                     {img.prompt}
                   </Text>
                   <View direction="row" align="center" gap={2}>
-                    <Text variant="caption-1" color="neutral-faded">
-                      {formatDate(img.createdAt)}
-                    </Text>
-                    {img.loraScaleName && (
-                      <Badge size="small" color="primary" variant="faded">
-                        {img.loraScaleName}
-                      </Badge>
+                    <View.Item grow>
+                      <View direction="row" align="center" gap={2}>
+                        <Text variant="caption-1" color="neutral-faded">
+                          {formatDate(img.createdAt)}
+                        </Text>
+                        {img.loraScaleName && (
+                          <Badge size="small" color="primary" variant="faded">
+                            {img.loraScaleName}
+                          </Badge>
+                        )}
+                      </View>
+                    </View.Item>
+                    {isOwner(currentWallet, img.walletAddress) && (
+                      <GeneratedImageHideToggle id={img.id} hidden={img.hidden ?? false} />
                     )}
                   </View>
                 </View>
@@ -129,13 +147,20 @@ export default function GeneratedImageGrid({
                       {img.prompt}
                     </Text>
                     <View direction="row" align="center" gap={2}>
-                      <Text variant="caption-1" color="neutral-faded">
-                        {formatDate(img.createdAt)}
-                      </Text>
-                      {img.loraScaleName && (
-                        <Badge size="small" color="primary" variant="faded">
-                          {img.loraScaleName}
-                        </Badge>
+                      <View.Item grow>
+                        <View direction="row" align="center" gap={2}>
+                          <Text variant="caption-1" color="neutral-faded">
+                            {formatDate(img.createdAt)}
+                          </Text>
+                          {img.loraScaleName && (
+                            <Badge size="small" color="primary" variant="faded">
+                              {img.loraScaleName}
+                            </Badge>
+                          )}
+                        </View>
+                      </View.Item>
+                      {isOwner(currentWallet, img.walletAddress) && (
+                        <GeneratedImageHideToggle id={img.id} hidden={img.hidden ?? false} />
                       )}
                     </View>
                   </View>
