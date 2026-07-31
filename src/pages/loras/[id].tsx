@@ -80,7 +80,13 @@ export default function LoraDetailPage() {
   const lora = loraQuery.data;
   if (!lora) return null;
 
-  const isOwner = !!(sessionWallet && lora.walletAddress && isAddress(lora.walletAddress) && isAddressEqual(sessionWallet, lora.walletAddress as `0x${string}`));
+  const isOwner = !!(
+    sessionWallet &&
+    lora.walletAddress &&
+    isAddress(sessionWallet) &&
+    isAddress(lora.walletAddress) &&
+    isAddressEqual(sessionWallet as `0x${string}`, lora.walletAddress as `0x${string}`)
+  );
 
   const isCompleted = lora.status === "completed" && !!lora.loraWeightsUrl;
   const images = imagesQuery.data ?? [];
