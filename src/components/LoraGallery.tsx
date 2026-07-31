@@ -8,7 +8,7 @@ export default function LoraGallery() {
 
   if (isLoading) {
     return (
-      <View align="center" justify="center" padding={10}>
+      <View align="center" justify="center" attributes={{ style: { height: "100%" } }}>
         <Loader />
       </View>
     );
