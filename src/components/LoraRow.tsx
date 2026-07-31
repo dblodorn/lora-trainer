@@ -1,6 +1,8 @@
 import { View, Text, Button } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import { Eye, EyeOff } from "lucide-react";
+import { trpc } from "@/utils/trpc";
 import ArenaChannelBadge from "./ArenaChannelBadge";
 
 interface LoraRowProps {
@@ -12,6 +14,9 @@ interface LoraRowProps {
   createdAt: string;
   arenaChannelUrl?: string | null;
   arenaChannelTitle?: string | null;
+  walletAddress?: string;
+  hidden?: boolean;
+  isOwner?: boolean;
 }
 
 function formatDate(iso: string): string {
@@ -32,10 +37,29 @@ export default function LoraRow({
   createdAt,
   arenaChannelUrl,
   arenaChannelTitle,
+  walletAddress,
+  hidden,
+  isOwner,
 }: LoraRowProps) {
+  const utils = trpc.useUtils();
+  const hideMutation = trpc.lora.hide.useMutation({
+    onSuccess: () => utils.lora.list.invalidate(),
+  });
+  const unhideMutation = trpc.lora.unhide.useMutation({
+    onSuccess: () => utils.lora.list.invalidate(),
+  });
+
   const maxThumbnails = 4;
   const visibleImages = imageUrls.slice(0, maxThumbnails);
   const overflow = imageUrls.length - maxThumbnails;
+
+  const handleToggleHide = () => {
+    if (hidden) {
+      unhideMutation.mutate({ id });
+    } else {
+      hideMutation.mutate({ id });
+    }
+  };
 
   return (
     <View
@@ -102,7 +126,17 @@ export default function LoraRow({
       </View.Item>
 
       {/* Actions */}
-      <View direction="row" gap={2}>
+      <View direction="row" gap={2} align="center">
+        {isOwner && (
+          <Button
+            variant="ghost"
+            size="small"
+            onClick={handleToggleHide}
+            loading={hideMutation.isPending || unhideMutation.isPending}
+          >
+            {hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+          </Button>
+        )}
         <NextLink href={`/loras/${id}`} passHref legacyBehavior>
           <Button as="a" color="primary" size="medium" attributes={{ style: { width: 120 } }}>
             View
