@@ -352,6 +352,7 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
   // State machine: "holding" | "transitioning" | "waiting"
   // "waiting" = transition hit 1.0, loading next image, clamp progress at 1
   const phaseRef = useRef<"holding" | "transitioning" | "waiting">("holding");
+  const isAdvancingRef = useRef(false);
   const utils = trpc.useUtils();
 
     // Re-fetch random images on route change
