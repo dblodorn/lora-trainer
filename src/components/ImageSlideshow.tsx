@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/router";
 import { trpc } from "@/utils/trpc";
 
 // ---------------------------------------------------------------------------
@@ -311,6 +312,8 @@ interface ImageSlideshowProps {
 }
 
 export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
+  const router = useRouter();
+  const routeRef = useRef(router.asPath);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasReady, setCanvasReady] = useState(false);
@@ -349,11 +352,20 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
   // State machine: "holding" | "transitioning" | "waiting"
   // "waiting" = transition hit 1.0, loading next image, clamp progress at 1
   const phaseRef = useRef<"holding" | "transitioning" | "waiting">("holding");
-  const isAdvancingRef = useRef(false);
-
-  // tRPC — only fetch random images when no custom images provided
   const utils = trpc.useUtils();
-  const { data: initialData } = trpc.slideshow.randomImages.useQuery(
+
+    // Re-fetch random images on route change
+    useEffect(() => {
+      if (routeRef.current !== router.asPath) {
+        routeRef.current = router.asPath;
+        if (!isCustomMode) {
+          utils.slideshow.randomImages.invalidate();
+        }
+      }
+    }, [router.asPath, utils, isCustomMode]);
+
+    // tRPC — only fetch random images when no custom images provided
+    const { data: initialData } = trpc.slideshow.randomImages.useQuery(
     { count: BATCH_SIZE },
     { refetchOnWindowFocus: false, staleTime: Infinity, enabled: !isCustomMode },
   );
