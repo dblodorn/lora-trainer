@@ -1,8 +1,10 @@
+import { useRouter } from "next/router";
 import { View, Text, Link } from "reshaped";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 export default function Custom404() {
+  const router = useRouter();
   return (
     <View
       height="100vh"
@@ -20,7 +22,7 @@ export default function Custom404() {
           },
         }}
       >
-        <ImageSlideshow />
+        <ImageSlideshow key={router.asPath} />
       </View>
 
       {/* Content overlay */}

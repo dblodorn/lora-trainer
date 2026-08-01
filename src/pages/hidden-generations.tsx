@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import { View, Text, Alert, Loader } from "reshaped";
 import { useAccount } from "wagmi";
 import { trpc } from "@/utils/trpc";
@@ -8,6 +9,7 @@ import { NAV_WIDTH } from "@/components/VerticalNav";
 import { LEFT_NAV_WIDTH } from "@/components/AuthLeftNav";
 
 export default function HiddenGenerationsPage() {
+  const router = useRouter();
   const { address: connectedAddress } = useAccount();
   const { data, isLoading, error } = trpc.generate.listHiddenImages.useQuery(
     { walletAddress: connectedAddress },
@@ -61,7 +63,7 @@ export default function HiddenGenerationsPage() {
                 },
               }}
             >
-              <ImageSlideshow />
+              <ImageSlideshow key={router.asPath} />
             </View>
             {/* Centered empty text */}
             <View

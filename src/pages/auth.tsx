@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import { View } from "reshaped";
 import { useAccount } from "wagmi";
 import ImageSlideshow from "@/components/ImageSlideshow";
@@ -8,6 +9,7 @@ import { NAV_WIDTH } from "@/components/VerticalNav";
 const LEFT_NAV_WIDTH = 60;
 
 export default function AuthPage() {
+  const router = useRouter();
   const { isConnected } = useAccount();
 
   return (
@@ -37,7 +39,7 @@ export default function AuthPage() {
             },
           }}
         >
-          <ImageSlideshow />
+          <ImageSlideshow key={router.asPath} />
         </View>
 
         {/* Content overlay */}

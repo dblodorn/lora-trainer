@@ -1,9 +1,11 @@
+import { useRouter } from "next/router";
 import { View } from "reshaped";
 import LoraGallery from "@/components/LoraGallery";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 export default function LorasPage() {
+  const router = useRouter();
   return (
     <View
       height="100vh"
@@ -26,7 +28,7 @@ export default function LorasPage() {
           },
         }}
       >
-        <ImageSlideshow />
+        <ImageSlideshow key={router.asPath} />
       </View>
 
       {/* Content */}
