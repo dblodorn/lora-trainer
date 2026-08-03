@@ -1,43 +1,62 @@
+import { useRouter } from "next/router";
 import { View } from "reshaped";
+import { useAccount } from "wagmi";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import SignInFlow from "@/components/SignInFlow";
+import AuthLeftNav from "@/components/AuthLeftNav";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
-export default function AuthPage() {
-  return (
-    <View
-      height="100vh"
-      overflow="hidden"
-      direction="column"
-      attributes={{ style: { width: `calc(100% - ${NAV_WIDTH}px)`, position: "relative" } }}
-    >
-      {/* Full-bleed canvas background */}
-      <View
-        attributes={{
-          style: {
-            position: "absolute",
-            inset: 0,
-            overflow: "hidden",
-          },
-        }}
-      >
-        <ImageSlideshow />
-      </View>
+const LEFT_NAV_WIDTH = 60;
 
-      {/* Content overlay */}
+export default function AuthPage() {
+  const router = useRouter();
+  const { isConnected } = useAccount();
+
+  return (
+    <>
+      {isConnected && <AuthLeftNav />}
       <View
-        align="center"
-        justify="center"
+        height="100vh"
+        overflow="hidden"
+        direction="column"
         attributes={{
           style: {
+            marginLeft: isConnected ? `${LEFT_NAV_WIDTH}px` : "0px",
+            width: isConnected
+              ? `calc(100% - ${NAV_WIDTH}px - ${LEFT_NAV_WIDTH}px)`
+              : `calc(100% - ${NAV_WIDTH}px)`,
             position: "relative",
-            zIndex: 10,
-            flex: 1,
           },
         }}
       >
-        <SignInFlow />
+        {/* Full-bleed canvas background */}
+        <View
+          attributes={{
+            style: {
+              position: "absolute",
+              inset: 0,
+              overflow: "hidden",
+            },
+          }}
+        >
+          <ImageSlideshow key={router.asPath} />
+        </View>
+
+        {/* Content overlay */}
+        <View
+          align="center"
+          justify="center"
+          attributes={{
+            style: {
+              position: "relative",
+              zIndex: 10,
+              flex: 1,
+            },
+          }}
+        >
+          <SignInFlow />
+        </View>
       </View>
-    </View>
+    </>
   );
 }

@@ -221,14 +221,21 @@ export const loraRouter = router({
       return { success: true };
     }),
 
-  listHidden: publicProcedure.query(async () => {
-    const db = await getDb();
+  listHidden: publicProcedure
+      .input(z.object({ walletAddress: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        const db = await getDb();
 
-    const docs = await db
-      .collection<LoraTrainingDoc>("lora_trainings")
-      .find({ status: "completed", hidden: true })
-      .sort({ createdAt: -1 })
-      .toArray();
+        const filter: Record<string, unknown> = { status: "completed", hidden: true };
+        if (input?.walletAddress) {
+          filter.walletAddress = { $regex: `^${input.walletAddress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: "i" };
+        }
+
+        const docs = await db
+          .collection<LoraTrainingDoc>("lora_trainings")
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .toArray();
 
     return docs.map((doc) => ({
       id: doc._id,

@@ -355,7 +355,7 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
   const utils = trpc.useUtils();
   const { data: initialData } = trpc.slideshow.randomImages.useQuery(
     { count: BATCH_SIZE },
-    { refetchOnWindowFocus: false, staleTime: Infinity, enabled: !isCustomMode },
+    { refetchOnWindowFocus: false, staleTime: 0, enabled: !isCustomMode },
   );
 
   // Fetch more images lazily

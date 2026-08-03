@@ -1,12 +1,18 @@
-import { View, Text, Alert, Loader, Button } from "reshaped";
-import NextLink from "next/link";
+import { View, Text, Alert, Loader } from "reshaped";
 import { trpc } from "@/utils/trpc";
 import LoraRow from "./LoraRow";
 
-export default function HiddenLoraGallery() {
-  const { data, isLoading, error } = trpc.lora.listHidden.useQuery();
+interface HiddenLoraGalleryProps {
+  walletAddress?: string;
+}
 
-  if (isLoading) {
+export default function HiddenLoraGallery({ walletAddress }: HiddenLoraGalleryProps) {
+  const { data, isLoading, error } = trpc.lora.listHidden.useQuery(
+    { walletAddress },
+    { enabled: !!walletAddress },
+  );
+
+  if (isLoading || !walletAddress) {
     return (
       <View align="center" justify="center" attributes={{ style: { height: "100%" } }}>
         <Loader />
@@ -26,15 +32,10 @@ export default function HiddenLoraGallery() {
 
   if (!data || data.length === 0) {
     return (
-      <View align="center" justify="center" padding={10} gap={2}>
-        <Text variant="body-1" color="neutral-faded">
+      <View align="center" justify="center" attributes={{ style: { height: "100%" } }}>
+        <Text variant="body-1" color="neutral-faded" align="center">
           No hidden LoRAs.
         </Text>
-        <NextLink href="/" passHref legacyBehavior>
-          <Button as="a" color="primary" size="small">
-            Train a new LoRA
-          </Button>
-        </NextLink>
       </View>
     );
   }
