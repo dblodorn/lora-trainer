@@ -15,6 +15,25 @@ if (!mongoUri) {
 const authMongoClient = new MongoClient(mongoUri);
 const authDb = authMongoClient.db();
 
+/**
+ * Wallets permitted to sign in.
+ *
+ * Fails closed: an absent or empty list denies everyone rather than admitting
+ * anyone. Previously an unset value fell through to accepting any wallet that
+ * could produce a valid signature, so a missing environment variable silently
+ * opened sign-in to the world.
+ */
+const allowedAddresses = (process.env.ALLOWED_ADDRESSES ?? "")
+  .split(",")
+  .map((a) => a.trim().toLowerCase())
+  .filter(Boolean);
+
+if (allowedAddresses.length === 0) {
+  console.error(
+    "[auth] ALLOWED_ADDRESSES is not configured. Every sign-in will be refused until it is set.",
+  );
+}
+
 const productionHost = process.env.BETTER_AUTH_URL
   ? new URL(process.env.BETTER_AUTH_URL).host
   : "localhost:3000";
@@ -48,13 +67,11 @@ function buildAuth(host: string) {
             message,
             signature: signature as `0x${string}`,
           });
-          if (valid && process.env.ALLOWED_ADDRESSES) {
-            const allowed = process.env.ALLOWED_ADDRESSES.split(",").map((a) =>
-              a.trim().toLowerCase(),
-            );
-            return allowed.includes(address.toLowerCase());
-          }
-          return valid;
+          if (!valid) return false;
+
+          // Deny when the allowlist is unconfigured. Returning `valid` here
+          // would hand a session to any wallet capable of signing.
+          return allowedAddresses.includes(address.toLowerCase());
         },
       }),
     ],

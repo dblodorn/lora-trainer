@@ -17,7 +17,7 @@ Create `.env` (or `.env.local`) in the project root:
 # Auth (Better Auth + SIWE)
 BETTER_AUTH_SECRET=<generate with: openssl rand -base64 32>
 BETTER_AUTH_URL=http://localhost:3000
-ALLOWED_ADDRESSES=0xYOUR_WALLET_ADDRESS  # optional, comma-separated
+ALLOWED_ADDRESSES=0xYOUR_WALLET_ADDRESS  # required, comma-separated
 
 # Database (MongoDB)
 MONGODB_URI=mongodb+srv://user:pass@your-cluster.mongodb.net/lora-trainer
@@ -58,7 +58,7 @@ Set the following in your Vercel project's Environment Variables settings:
 | ---------------------------- | --------------------------------------------------------------------- |
 | `BETTER_AUTH_SECRET`         | Auth secret key                                                       |
 | `BETTER_AUTH_URL`            | Production URL (e.g. `https://arenatrainer.dmbk.io`)                  |
-| `ALLOWED_ADDRESSES`          | Comma-separated wallet addresses allowed to sign in                   |
+| `ALLOWED_ADDRESSES`          | Comma-separated wallets allowed to sign in. **Required** — sign-in is refused entirely when unset |
 | `MONGODB_URI`                | MongoDB connection string                                             |
 | `FAL_AI_API_KEY`             | [FAL.ai](https://fal.ai/dashboard) API key                            |
 | `TRAINING_PRICE_USD`         | USD price per training run (default: `4`)                              |
