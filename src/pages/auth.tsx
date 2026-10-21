@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { View } from "reshaped";
+import { Card, View } from "reshaped";
 import { useSession } from "@/lib/session";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import GoogleSignIn from "@/components/GoogleSignIn";
@@ -55,7 +55,9 @@ export default function AuthPage() {
             },
           }}
         >
-          <GoogleSignIn />
+          <Card padding={6}>
+            <GoogleSignIn />
+          </Card>
         </View>
       </View>
     </>
