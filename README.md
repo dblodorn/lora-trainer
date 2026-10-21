@@ -81,7 +81,7 @@ A standalone Next.js app (no monorepo).
 - **Auth** (`src/server/auth/session.ts`, `src/pages/api/session.ts`): Google sign-in through the dmbk GraphQL API.
 - **UI**: [Reshaped](https://reshaped.so) with a custom "lora-trainer" theme.
 - **Database**: MongoDB (native driver).
-- **Scripts** (`scripts/`): one-off migrations from earlier versions (Turso → Mongo, FAL → Spaces, channel titles).
+- **Scripts** (`scripts/`): one-off migrations from earlier versions (FAL → Spaces, channel titles).
 
 ## Auth
 
