@@ -18,13 +18,8 @@ export default function ArenaChannelResults({
   selectedImages,
   onImageSelect,
 }: ArenaChannelResultsProps) {
-  const getImageUrl = (image: ArenaImage) => {
-    return (
-      image.image?.original.url ||
-      image.image?.large.url ||
-      image.image?.display.url
-    );
-  };
+  // The original is what gets trained on; the card shows the thumbnail.
+  const getImageUrl = (image: ArenaImage) => image.src;
 
   function renderImageGrid() {
     return (

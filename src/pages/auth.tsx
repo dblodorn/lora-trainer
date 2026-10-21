@@ -1,8 +1,9 @@
 import { useRouter } from "next/router";
-import { Card, View } from "reshaped";
+import { Card, Divider, View } from "reshaped";
 import { useSession } from "@/lib/session";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import ArenaUsername from "@/components/ArenaUsername";
 import AuthLeftNav from "@/components/AuthLeftNav";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
@@ -56,7 +57,15 @@ export default function AuthPage() {
           }}
         >
           <Card padding={6}>
-            <GoogleSignIn />
+            <View gap={6}>
+              <GoogleSignIn />
+              {isSignedIn && (
+                <>
+                  <Divider />
+                  <ArenaUsername />
+                </>
+              )}
+            </View>
           </Card>
         </View>
       </View>

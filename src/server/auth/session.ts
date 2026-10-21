@@ -49,16 +49,16 @@ export class SignInRefusedError extends Error {
   }
 }
 
-function apiUrl(): string {
+export function apiUrl(): string {
   return process.env.DMBK_GRAPHQL_API_URL || "https://graphql.dmbk.network/graphql";
 }
 
-interface GqlResponse<T> {
+export interface GqlResponse<T> {
   data?: T | null;
   errors?: { message: string; extensions?: { code?: string } }[];
 }
 
-async function callApi<T>(
+export async function callApi<T>(
   query: string,
   variables: Record<string, unknown> = {},
   token?: string,
