@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { trpc } from "@/utils/trpc";
 import { downloadBase64File } from "@/utils/downloadBase64File";
 import ChannelUrlForm from "./ChannelUrlForm";
+import ArenaChannelPicker from "./ArenaChannelPicker";
 import ArenaChannelResults from "./ArenaChannelResults";
 import Sidebar from "./Sidebar";
 import TrainingProgress from "./TrainingProgress";
@@ -173,15 +174,18 @@ export default function ArenaChannelFetcher() {
     onError: (error) => console.error("Download failed:", error),
   });
 
+  const loadChannel = (url: string) => {
+    setSubmittedUrl(url);
+    router.replace({ query: { channel: url } }, undefined, { shallow: true });
+  };
+
   const onSubmit = (formData: FormData) => {
-    if (formData.url.trim()) {
-      setSubmittedUrl(formData.url.trim());
-      router.replace(
-        { query: { channel: formData.url.trim() } },
-        undefined,
-        { shallow: true },
-      );
-    }
+    if (formData.url.trim()) loadChannel(formData.url.trim());
+  };
+
+  const onPickChannel = (url: string) => {
+    setValue("url", url);
+    loadChannel(url);
   };
 
   const handleImageSelection = (imageUrl: string, isSelected: boolean) => {
@@ -331,11 +335,14 @@ export default function ArenaChannelFetcher() {
                 },
               }}
             >
-              <ChannelUrlForm
-                control={control}
-                onSubmit={handleSubmit(onSubmit)}
-                isLoading={isLoading}
-              />
+              <View gap={3}>
+                <ChannelUrlForm
+                  control={control}
+                  onSubmit={handleSubmit(onSubmit)}
+                  isLoading={isLoading}
+                />
+                <ArenaChannelPicker onPick={onPickChannel} disabled={isLoading} />
+              </View>
             </View>
           </View>
         )}

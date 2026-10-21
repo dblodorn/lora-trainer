@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Actionable, Card, Checkbox, Text, Link, View } from "reshaped";
+import { Actionable, Card, Checkbox, Text, View } from "reshaped";
 import NextImage from "next/image";
 import type { ArenaImage } from "./types";
 
@@ -56,7 +56,7 @@ export default function ImageCard({
             }}
           >
             <NextImage
-              src={imageUrl}
+              src={image.thumbnailSrc}
               alt={image.title || "Untitled"}
               fill
               sizes="(max-width: 768px) 50vw, 33vw"
@@ -71,16 +71,10 @@ export default function ImageCard({
           <Text variant="body-2" weight="medium" maxLines={1}>
             {image.title || "Untitled"}
           </Text>
-          <Text variant="caption-1" color="neutral-faded">
-            {new Date(image.created_at).toLocaleDateString()}
-          </Text>
-          {image.source?.url && (
-            <Link
-              href={image.source.url}
-              attributes={{ target: "_blank", rel: "noopener noreferrer" }}
-            >
-              <Text variant="caption-1">Source</Text>
-            </Link>
+          {image.width && image.height && (
+            <Text variant="caption-1" color="neutral-faded">
+              {image.width} × {image.height}
+            </Text>
           )}
         </View>
       </View>

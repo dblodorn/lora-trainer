@@ -4,9 +4,10 @@ Next.js Pages Router app for selecting [Are.na](https://are.na) images, training
 
 ## What it does
 
-- **Train** (`/`): paste an Are.na channel URL, pick images, set a trigger word and step count, and train a FLUX LoRA (`fal-ai/flux-lora-fast-training`). Progress is polled from the FAL queue.
+- **Train** (`/`): paste an Are.na channel URL, or pick one of your channels once your Are.na username is saved on `/auth`. Then pick images, set a trigger word and step count, and train a FLUX LoRA (`fal-ai/flux-lora-fast-training`). Progress is polled from the FAL queue.
 - **Loras** (`/loras`, `/loras/[id]`): the gallery of completed LoRAs. Each detail page shows the training images, the weights URL, and images generated with it. Signed in, you can generate 4 images at a time (`fal-ai/flux-lora`) at a chosen LoRA scale and size.
 - **Hide**: the owner can hide a LoRA or a generated image from the public pages. Hidden ones are listed at `/hidden` and `/hidden-generations`.
+- **Are.na**: channels are read through the dmbk API (`arenaChannel`, `viewer.arena`), which uses Are.na's v3 API without credentials, so only public and closed channels can be used. The picker lists your own channels and your groups' channels, up to 100 images per channel.
 - **Storage**: training images, the training zip, LoRA weights and generated images are mirrored to DigitalOcean Spaces. A generated image whose mirror failed keeps its fal.media URL.
 
 Browsing is public. Training, generating and hiding need a signed-in account (see [Auth](#auth)).
@@ -76,7 +77,7 @@ Pushes to `main` deploy to production. Set these in the Vercel project:
 A standalone Next.js app (no monorepo).
 
 - **Pages Router** (`src/pages/`): pages with tRPC + React Query.
-- **tRPC backend** (`src/server/api/`): routers for `fal` (training), `lora`, `generate`, `arena`, `slideshow`. Mounted at `/api/trpc`.
+- **tRPC backend** (`src/server/api/`): routers for `fal` (training), `lora`, `generate`, `arena`, `slideshow`. Mounted at `/api/trpc`. `arena` calls the dmbk API through `dmbk-api.ts`, passing the viewer's session token.
 - **Auth** (`src/server/auth/session.ts`, `src/pages/api/session.ts`): Google sign-in through the dmbk GraphQL API.
 - **UI**: [Reshaped](https://reshaped.so) with a custom "lora-trainer" theme.
 - **Database**: MongoDB (native driver).

@@ -17,16 +17,4 @@ export const formSchema = z.object({
 
 export type FormData = z.infer<typeof formSchema>;
 
-export interface ArenaImage {
-  id: number;
-  title?: string;
-  created_at: string;
-  source?: { url: string };
-  image?: {
-    display: { url: string };
-    large: { url: string };
-    thumb: { url: string };
-    square: { url: string };
-    original: { url: string };
-  };
-}
+export type { ArenaImage } from "@/server/api/features/arena";
