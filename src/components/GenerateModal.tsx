@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { View, Text, Button, Modal, TextArea, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
 import { trpc } from "@/utils/trpc";
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/lib/session";
 import { useAuthModal } from "./AuthModalProvider";
 import GeneratedImageGrid from "./GeneratedImageGrid";
 import {
@@ -39,14 +39,10 @@ export default function GenerateModal({
   const [imageWidth, setImageWidth] = useState<number>(DEFAULT_IMAGE_WIDTH);
   const [imageHeight, setImageHeight] = useState<number>(DEFAULT_IMAGE_HEIGHT);
 
-  const { data: session } = authClient.useSession();
+  const { viewer } = useSession();
   const { openAuthModal } = useAuthModal();
 
   const utils = trpc.useUtils();
-
-  const remainingQuery = trpc.generate.remaining.useQuery(undefined, {
-    enabled: active && !!session,
-  });
 
   const generateMutation = trpc.generate.images.useMutation({
     onSuccess: (data) => {
@@ -63,7 +59,6 @@ export default function GenerateModal({
       );
       setNsfwWarning(data.nsfwFiltered);
       utils.generate.listByLora.invalidate({ loraTrainingId: loraId });
-      utils.generate.remaining.invalidate();
     },
   });
 
@@ -79,7 +74,7 @@ export default function GenerateModal({
   }, [active]);
 
   const handleGenerate = useCallback(() => {
-    if (!session) {
+    if (!viewer) {
       openAuthModal();
       return;
     }
@@ -94,7 +89,7 @@ export default function GenerateModal({
       imageWidth,
       imageHeight,
     });
-  }, [session, prompt, loraId, loraScale, imageWidth, imageHeight, generateMutation, openAuthModal]);
+  }, [viewer, prompt, loraId, loraScale, imageWidth, imageHeight, generateMutation, openAuthModal]);
 
   const handleGenerateAgain = useCallback(() => {
     setGeneratedImages([]);
@@ -111,8 +106,6 @@ export default function GenerateModal({
 
   const isGenerating = generateMutation.isPending;
   const hasResults = generatedImages.length > 0;
-  const remaining = remainingQuery.data?.remaining ?? null;
-  const isExempt = remainingQuery.data?.isExempt ?? false;
 
   return (
     <Modal active={active} onClose={onClose} position="center" padding={6} size="640px">
@@ -215,20 +208,14 @@ export default function GenerateModal({
           </Text>
         </View>
 
-        {remaining !== null && !isExempt && (
-          <Text variant="caption-1" color="neutral-faded">
-            {remaining} of 8 generations remaining today
-          </Text>
-        )}
-
         {!hasResults && !isGenerating && (
           <Button
             color="primary"
             fullWidth
             onClick={handleGenerate}
-            disabled={!prompt.trim() || (remaining === 0 && !isExempt)}
+            disabled={!prompt.trim()}
           >
-            {!session ? "Connect Wallet to Generate" : "Generate 4 Images"}
+            {!viewer ? "Sign In to Generate" : "Generate 4 Images"}
           </Button>
         )}
 
@@ -260,7 +247,7 @@ export default function GenerateModal({
               color="primary"
               fullWidth
               onClick={handleGenerateAgain}
-              disabled={!prompt.trim() || (remaining === 0 && !isExempt)}
+              disabled={!prompt.trim()}
             >
               Generate Again
             </Button>

@@ -1,21 +1,13 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
-import { requireFalApiKey, getTrainingPriceUsd, getAdminWallet } from "../env";
+import { requireFalApiKey } from "../env";
 import { getDb } from "../db";
 import { fal } from "@fal-ai/client";
 import archiver from "archiver";
 import { PassThrough } from "node:stream";
 import dns from "node:dns";
 import net from "node:net";
-import type { Hex } from "viem";
-import {
-  isPaymentExempt,
-  verifyPaymentTx,
-  getEthPriceFromUniswap,
-  calculateRequiredEthWei,
-  sendRefund,
-} from "./payment";
 import { createPendingLora } from "./lora";
 import { uploadToSpaces, mirrorUrlToSpaces } from "./storage";
 
@@ -348,63 +340,9 @@ export const falRouter = router({
         steps: z.number().min(100).max(2000).default(1000),
         arenaChannelUrl: z.string().url().optional(),
         arenaChannelTitle: z.string().max(200).optional(),
-        paymentTxHash: z
-          .string()
-          .regex(/^0x[0-9a-fA-F]{64}$/)
-          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const walletAddress = ctx.session.user.walletAddress;
-      console.log(
-        `[trainLora] walletAddress from ctx: "${walletAddress}", adminWallet from env: "${getAdminWallet()}"`,
-      );
-      const exempt = isPaymentExempt(walletAddress);
-      console.log(`[trainLora] isPaymentExempt: ${exempt}`);
-
-      // ── Payment verification ──────────────────────────────────────
-      let paymentValue: bigint | null = null;
-
-      if (!exempt) {
-        if (!input.paymentTxHash) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message:
-              "Payment required. Please submit a payment transaction to train.",
-          });
-        }
-
-        try {
-          const trainingPriceUsd = getTrainingPriceUsd();
-          const ethPriceUsd = await getEthPriceFromUniswap();
-          const requiredEthWei = calculateRequiredEthWei(
-            ethPriceUsd,
-            trainingPriceUsd,
-          );
-
-          const verification = await verifyPaymentTx(
-            input.paymentTxHash as Hex,
-            requiredEthWei,
-          );
-          paymentValue = verification.value;
-
-          console.log(
-            `Payment verified: ${input.paymentTxHash} from ${verification.from} (${verification.value} wei)`,
-          );
-        } catch (error) {
-          const msg =
-            error instanceof Error
-              ? error.message
-              : "Payment verification failed";
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Payment verification failed: ${msg}`,
-          });
-        }
-      } else {
-        console.log(`Payment exempt for wallet: ${walletAddress}`);
-      }
-
       // ── Training execution ────────────────────────────────────────
       try {
         ensureFalConfigured();
@@ -447,7 +385,7 @@ export const falRouter = router({
         try {
           const result = await createPendingLora({
             requestId: request_id,
-            walletAddress,
+            ownerId: ctx.viewer.id,
             triggerWord: input.triggerWord,
             steps: input.steps,
             imageUrls: input.imageUrls,
@@ -510,41 +448,15 @@ export const falRouter = router({
           requestId: request_id,
           zipUrl,
           loraId,
-          refundTxHash: null as string | null,
         };
       } catch (error) {
         console.error("LoRA training error:", error);
-
-        // ── Auto-refund on FAL failure ────────────────────────────────
-        let refundTxHash: string | null = null;
-        if (!exempt && paymentValue && input.paymentTxHash) {
-          try {
-            console.log(
-              `FAL failed — initiating refund of ${paymentValue} wei to ${walletAddress}`,
-            );
-            refundTxHash = await sendRefund(walletAddress, paymentValue);
-            console.log(`Refund sent: ${refundTxHash}`);
-          } catch (refundError) {
-            console.error("Refund failed:", refundError);
-            // Include refund failure info in the error message
-            const refundMsg =
-              refundError instanceof Error
-                ? refundError.message
-                : "Unknown refund error";
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: `Training failed and refund also failed: ${refundMsg}. Original payment tx: ${input.paymentTxHash}. Please contact support.`,
-            });
-          }
-        }
 
         const trainingMsg =
           error instanceof Error ? error.message : "Unknown error";
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: refundTxHash
-            ? `Training failed. Your ETH has been refunded (tx: ${refundTxHash}). Error: ${trainingMsg}`
-            : `LoRA training failed: ${trainingMsg}`,
+          message: `LoRA training failed: ${trainingMsg}`,
         });
       }
     }),

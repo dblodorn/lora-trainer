@@ -8,7 +8,10 @@ config();
 export interface LoraTrainingDoc {
   _id: string;
   requestId: string;
-  walletAddress: string;
+  /** The owning account's id at the dmbk accounts API. */
+  ownerId?: string;
+  /** The SIWE wallet that owned the record before accounts. Kept, not written. */
+  walletAddress?: string;
   triggerWord: string;
   steps: number;
   imageUrls: string[];
@@ -25,7 +28,10 @@ export interface LoraTrainingDoc {
 export interface GeneratedImageDoc {
   _id: string;
   loraTrainingId: string;
-  walletAddress: string;
+  /** The owning account's id at the dmbk accounts API. */
+  ownerId?: string;
+  /** The SIWE wallet that owned the record before accounts. Kept, not written. */
+  walletAddress?: string;
   prompt: string;
   imageUrl: string;
   cdnUrl: string | null;
@@ -90,10 +96,13 @@ async function ensureIndexes(db: Db): Promise<void> {
   await loraCol.createIndex({ requestId: 1 }, { unique: true });
   await loraCol.createIndex({ status: 1, hidden: 1 });
   await loraCol.createIndex({ createdAt: -1 });
+  await loraCol.createIndex({ ownerId: 1, hidden: 1 });
 
   // generated_images indexes
   const imgCol = db.collection<GeneratedImageDoc>("generated_images");
   await imgCol.createIndex({ loraTrainingId: 1 });
-  await imgCol.createIndex({ walletAddress: 1, hidden: 1 });
+  await imgCol.createIndex({ ownerId: 1, hidden: 1 });
+  // Superseded by ownerId; drop the old index if this database still has it.
+  await imgCol.dropIndex("walletAddress_1_hidden_1").catch(() => undefined);
   await imgCol.createIndex({ createdAt: -1 });
 }

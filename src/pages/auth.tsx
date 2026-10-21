@@ -1,8 +1,8 @@
 import { useRouter } from "next/router";
-import { View } from "reshaped";
-import { useAccount } from "wagmi";
+import { Card, View } from "reshaped";
+import { useSession } from "@/lib/session";
 import ImageSlideshow from "@/components/ImageSlideshow";
-import SignInFlow from "@/components/SignInFlow";
+import GoogleSignIn from "@/components/GoogleSignIn";
 import AuthLeftNav from "@/components/AuthLeftNav";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
@@ -10,19 +10,20 @@ const LEFT_NAV_WIDTH = 60;
 
 export default function AuthPage() {
   const router = useRouter();
-  const { isConnected } = useAccount();
+  const { viewer } = useSession();
+  const isSignedIn = !!viewer;
 
   return (
     <>
-      {isConnected && <AuthLeftNav />}
+      {isSignedIn && <AuthLeftNav />}
       <View
         height="100vh"
         overflow="hidden"
         direction="column"
         attributes={{
           style: {
-            marginLeft: isConnected ? `${LEFT_NAV_WIDTH}px` : "0px",
-            width: isConnected
+            marginLeft: isSignedIn ? `${LEFT_NAV_WIDTH}px` : "0px",
+            width: isSignedIn
               ? `calc(100% - ${NAV_WIDTH}px - ${LEFT_NAV_WIDTH}px)`
               : `calc(100% - ${NAV_WIDTH}px)`,
             position: "relative",
@@ -54,7 +55,9 @@ export default function AuthPage() {
             },
           }}
         >
-          <SignInFlow />
+          <Card padding={6}>
+            <GoogleSignIn />
+          </Card>
         </View>
       </View>
     </>

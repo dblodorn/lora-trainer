@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { Modal } from "reshaped";
-import SignInFlow from "./SignInFlow";
+import GoogleSignIn from "./GoogleSignIn";
 
 interface AuthModalContextValue {
   openAuthModal: () => void;
@@ -34,7 +34,7 @@ export default function AuthModalProvider({
         position="center"
         padding={6}
       >
-        <SignInFlow onSuccess={closeAuthModal} />
+        <GoogleSignIn onSuccess={closeAuthModal} />
       </Modal>
     </AuthModalContext.Provider>
   );

@@ -1,18 +1,14 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { View, Alert } from "reshaped";
 import { useRouter } from "next/router";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAccount } from "wagmi";
-import { isAddressEqual, type Address } from "viem";
 import { trpc } from "@/utils/trpc";
 import { downloadBase64File } from "@/utils/downloadBase64File";
-import { ADMIN_WALLET, QA_WALLETS } from "@/lib/constants";
 import ChannelUrlForm from "./ChannelUrlForm";
 import ArenaChannelResults from "./ArenaChannelResults";
 import Sidebar from "./Sidebar";
 import TrainingProgress from "./TrainingProgress";
-import PaymentGate from "./PaymentGate";
 import ImageSlideshow from "./ImageSlideshow";
 import { formSchema, type FormData } from "./types";
 
@@ -33,34 +29,6 @@ export default function ArenaChannelFetcher() {
   const [trainingLoraId, setTrainingLoraId] = useState<string | null>(null);
   const [trainingPhase, setTrainingPhase] = useState<TrainingPhase>("idle");
   const [trainingError, setTrainingError] = useState<string | null>(null);
-  const [showPaymentGate, setShowPaymentGate] = useState(false);
-
-  // Connected wallet for privilege checks
-  const { address: connectedAddress } = useAccount();
-
-  // Determine if current wallet is exempt from payment
-  const isExempt = useMemo(() => {
-    if (!connectedAddress) return false;
-
-    // Check admin wallet (from public env var, no API dependency)
-    if (ADMIN_WALLET) {
-      try {
-        if (isAddressEqual(connectedAddress, ADMIN_WALLET as Address)) {
-          return true;
-        }
-      } catch {
-        // invalid address format — skip
-      }
-    }
-    // Check QA wallets
-    return QA_WALLETS.some((qa) => {
-      try {
-        return isAddressEqual(connectedAddress, qa as Address);
-      } catch {
-        return false;
-      }
-    });
-  }, [connectedAddress]);
 
   const { handleSubmit, control, setValue, getValues } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -230,7 +198,7 @@ export default function ArenaChannelFetcher() {
     }
   };
 
-  const handleTrainLora = useCallback(async (paymentTxHash?: string) => {
+  const handleTrainLora = useCallback(async () => {
     const formData = getValues();
     if (!formData.selectedImages || formData.selectedImages.length === 0) {
       alert("Please select at least one image to train the LoRA");
@@ -238,12 +206,6 @@ export default function ArenaChannelFetcher() {
     }
     if (!formData.triggerWord.trim()) {
       alert("Please enter a trigger word for the LoRA");
-      return;
-    }
-
-    // If not exempt and no payment yet, show payment gate
-    if (!isExempt && !paymentTxHash) {
-      setShowPaymentGate(true);
       return;
     }
 
@@ -257,23 +219,13 @@ export default function ArenaChannelFetcher() {
         imageUrls: formData.selectedImages,
         triggerWord: formData.triggerWord,
         steps: formData.trainingSteps,
-        ...(paymentTxHash ? { paymentTxHash } : {}),
         ...(submittedUrl ? { arenaChannelUrl: submittedUrl } : {}),
         ...(data?.channel.title ? { arenaChannelTitle: data.channel.title } : {}),
       });
     } catch {
       // error handled in onError callback
     }
-  }, [getValues, isExempt, trainLoraMutation, submittedUrl, data]);
-
-  const handlePaymentComplete = useCallback(
-    (txHash: string) => {
-      setShowPaymentGate(false);
-      // Trigger training with the payment tx hash
-      handleTrainLora(txHash);
-    },
-    [handleTrainLora],
-  );
+  }, [getValues, trainLoraMutation, submittedUrl, data]);
 
   const handleResetTraining = useCallback(() => {
     // Reset training state
@@ -468,12 +420,6 @@ export default function ArenaChannelFetcher() {
         onReset={handleResetTraining}
         onCancel={handleCancelTraining}
         isCancelling={cancelTrainingMutation.isPending}
-      />
-
-      <PaymentGate
-        active={showPaymentGate}
-        onClose={() => setShowPaymentGate(false)}
-        onPaymentComplete={handlePaymentComplete}
       />
     </>
   );

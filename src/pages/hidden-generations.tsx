@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { View, Text, Alert, Loader } from "reshaped";
-import { useAccount } from "wagmi";
+import { useSession } from "@/lib/session";
 import { trpc } from "@/utils/trpc";
 import GeneratedImageGrid from "@/components/GeneratedImageGrid";
 import AuthLeftNav from "@/components/AuthLeftNav";
@@ -10,13 +10,13 @@ import { LEFT_NAV_WIDTH } from "@/components/AuthLeftNav";
 
 export default function HiddenGenerationsPage() {
   const router = useRouter();
-  const { address: connectedAddress } = useAccount();
+  const { viewer, isPending } = useSession();
   const { data, isLoading, error } = trpc.generate.listHiddenImages.useQuery(
-    { walletAddress: connectedAddress },
-    { enabled: !!connectedAddress },
+    undefined,
+    { enabled: !!viewer },
   );
 
-  if (isLoading) {
+  if (isPending || (viewer && isLoading)) {
     return (
       <View height="100vh" align="center" justify="center" attributes={{ style: { width: `calc(100% - ${NAV_WIDTH}px - ${LEFT_NAV_WIDTH}px)`, marginLeft: `${LEFT_NAV_WIDTH}px` } }}>
         <Loader />
@@ -87,7 +87,6 @@ export default function HiddenGenerationsPage() {
             <GeneratedImageGrid
               images={data}
               variant="page"
-              currentWallet={connectedAddress}
             />
           </View>
         )}
