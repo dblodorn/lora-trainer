@@ -7,8 +7,6 @@ import { httpBatchLink } from "@trpc/client";
 import { trpc } from "@/utils/trpc";
 import { useState } from "react";
 import { Reshaped } from "reshaped";
-import { WagmiProvider } from "wagmi";
-import { wagmiConfig } from "@/lib/wagmi";
 import AuthModalProvider from "@/components/AuthModalProvider";
 import VerticalNav from "@/components/VerticalNav";
 
@@ -25,7 +23,6 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 
   return (
-    <WagmiProvider config={wagmiConfig}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <Reshaped theme="lora-trainer">
@@ -36,6 +33,5 @@ export default function App({ Component, pageProps }: AppProps) {
           </Reshaped>
         </QueryClientProvider>
       </trpc.Provider>
-    </WagmiProvider>
   );
 }

@@ -1,6 +1,5 @@
 import { useRouter } from "next/router";
 import { View } from "reshaped";
-import { useAccount } from "wagmi";
 import HiddenLoraGallery from "@/components/HiddenLoraGallery";
 import AuthLeftNav from "@/components/AuthLeftNav";
 import { NAV_WIDTH } from "@/components/VerticalNav";
@@ -8,7 +7,6 @@ import { LEFT_NAV_WIDTH } from "@/components/AuthLeftNav";
 
 export default function HiddenPage() {
   const router = useRouter();
-  const { address: connectedAddress } = useAccount();
 
   return (
     <>
@@ -25,7 +23,7 @@ export default function HiddenPage() {
         }}
       >
         <View padding={2} attributes={{ style: { flex: 1, overflowY: "auto" } }}>
-          <HiddenLoraGallery walletAddress={connectedAddress} />
+          <HiddenLoraGallery />
         </View>
       </View>
     </>

@@ -1,18 +1,15 @@
 import { View, Text, Alert, Loader } from "reshaped";
 import { trpc } from "@/utils/trpc";
+import { useSession } from "@/lib/session";
 import LoraRow from "./LoraRow";
 
-interface HiddenLoraGalleryProps {
-  walletAddress?: string;
-}
+export default function HiddenLoraGallery() {
+  const { viewer, isPending } = useSession();
+  const { data, isLoading, error } = trpc.lora.listHidden.useQuery(undefined, {
+    enabled: !!viewer,
+  });
 
-export default function HiddenLoraGallery({ walletAddress }: HiddenLoraGalleryProps) {
-  const { data, isLoading, error } = trpc.lora.listHidden.useQuery(
-    { walletAddress },
-    { enabled: !!walletAddress },
-  );
-
-  if (isLoading || !walletAddress) {
+  if (isPending || (viewer && isLoading)) {
     return (
       <View align="center" justify="center" attributes={{ style: { height: "100%" } }}>
         <Loader />

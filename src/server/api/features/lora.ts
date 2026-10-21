@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { publicProcedure, protectedProcedure, router, isOwner } from "../trpc";
 import { getDb, LoraTrainingDoc } from "../db";
 import { mirrorUrlToSpaces } from "./storage";
 import crypto from "node:crypto";
@@ -14,7 +14,7 @@ function generateId(): string {
  */
 export async function createPendingLora(params: {
   requestId: string;
-  walletAddress: string;
+  ownerId: string;
   triggerWord: string;
   steps: number;
   imageUrls: string[];
@@ -28,7 +28,7 @@ export async function createPendingLora(params: {
   await db.collection<LoraTrainingDoc>("lora_trainings").insertOne({
     _id: id,
     requestId: params.requestId,
-    walletAddress: params.walletAddress,
+    ownerId: params.ownerId,
     triggerWord: params.triggerWord,
     steps: params.steps,
     imageUrls: params.imageUrls,
@@ -54,7 +54,6 @@ export const loraRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      const walletAddress = ctx.session.user.walletAddress;
 
       const existing = await db
         .collection<LoraTrainingDoc>("lora_trainings")
@@ -67,7 +66,7 @@ export const loraRouter = router({
         });
       }
 
-      if (existing.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      if (!isOwner(ctx.viewer, existing)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You are not the owner of this training record.",
@@ -140,7 +139,7 @@ export const loraRouter = router({
 
   getById: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
 
       const doc = await db
@@ -156,7 +155,7 @@ export const loraRouter = router({
       return {
         id: doc._id,
         requestId: doc.requestId,
-        walletAddress: doc.walletAddress,
+        isOwner: isOwner(ctx.viewer, doc),
         triggerWord: doc.triggerWord,
         steps: doc.steps,
         imageUrls: doc.imageUrls,
@@ -175,7 +174,6 @@ export const loraRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      const walletAddress = ctx.session.user.walletAddress;
 
       const doc = await db
         .collection<LoraTrainingDoc>("lora_trainings")
@@ -185,7 +183,7 @@ export const loraRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "LoRA not found." });
       }
 
-      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      if (!isOwner(ctx.viewer, doc)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this LoRA." });
       }
 
@@ -200,7 +198,6 @@ export const loraRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      const walletAddress = ctx.session.user.walletAddress;
 
       const doc = await db
         .collection<LoraTrainingDoc>("lora_trainings")
@@ -210,7 +207,7 @@ export const loraRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "LoRA not found." });
       }
 
-      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      if (!isOwner(ctx.viewer, doc)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this LoRA." });
       }
 
@@ -221,26 +218,19 @@ export const loraRouter = router({
       return { success: true };
     }),
 
-  listHidden: publicProcedure
-      .input(z.object({ walletAddress: z.string().optional() }).optional())
-      .query(async ({ input }) => {
+  /** The viewer's own hidden LoRAs. */
+  listHidden: protectedProcedure.query(async ({ ctx }) => {
         const db = await getDb();
-
-        const filter: Record<string, unknown> = { status: "completed", hidden: true };
-        if (input?.walletAddress) {
-          filter.walletAddress = { $regex: `^${input.walletAddress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: "i" };
-        }
 
         const docs = await db
           .collection<LoraTrainingDoc>("lora_trainings")
-          .find(filter)
+          .find({ status: "completed", hidden: true, ownerId: ctx.viewer.id })
           .sort({ createdAt: -1 })
           .toArray();
 
     return docs.map((doc) => ({
       id: doc._id,
       requestId: doc.requestId,
-      walletAddress: doc.walletAddress,
       triggerWord: doc.triggerWord,
       steps: doc.steps,
       imageUrls: doc.imageUrls,
@@ -265,7 +255,6 @@ export const loraRouter = router({
       return docs.map((doc) => ({
         id: doc._id,
         requestId: doc.requestId,
-        walletAddress: doc.walletAddress,
         triggerWord: doc.triggerWord,
         steps: doc.steps,
         imageUrls: doc.imageUrls,

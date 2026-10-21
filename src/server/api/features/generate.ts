@@ -1,10 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { publicProcedure, protectedProcedure, router, isOwner } from "../trpc";
 import { getDb, LoraTrainingDoc, GeneratedImageDoc } from "../db";
 import { requireFalApiKey } from "../env";
 import { fal } from "@fal-ai/client";
-import { isPaymentExempt } from "./payment";
 import { loraScaleSchema, DEFAULT_LORA_SCALE, getLoraScaleLabel } from "@/lib/lora-scale";
 import { imageDimensionsSchema, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "@/lib/image-dimensions";
 import { mirrorUrlToSpaces } from "./storage";
@@ -19,9 +18,7 @@ function ensureFalConfigured() {
   fal.config({ credentials: key });
 }
 
-const RATE_LIMIT_BATCHES = 8;
 const IMAGES_PER_BATCH = 4;
-const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export const generateRouter = router({
   images: protectedProcedure
@@ -35,7 +32,6 @@ export const generateRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const walletAddress = ctx.session.user.walletAddress;
       const db = await getDb();
 
       // Look up the LoRA training record
@@ -55,31 +51,6 @@ export const generateRouter = router({
           code: "BAD_REQUEST",
           message: "This LoRA is not ready for generation. Training must be completed first.",
         });
-      }
-
-      // Check rate limit (admin/QA exempt)
-      const exempt = isPaymentExempt(walletAddress);
-
-      if (!exempt) {
-        const windowStart = new Date(
-          Date.now() - RATE_LIMIT_WINDOW_MS,
-        ).toISOString();
-
-        const imageCount = await db
-          .collection<GeneratedImageDoc>("generated_images")
-          .countDocuments({
-            walletAddress,
-            createdAt: { $gt: windowStart },
-          });
-
-        const batchCount = Math.ceil(imageCount / IMAGES_PER_BATCH);
-
-        if (batchCount >= RATE_LIMIT_BATCHES) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: `Rate limit reached. You can generate up to ${RATE_LIMIT_BATCHES} batches per 24 hours. Try again later.`,
-          });
-        }
       }
 
       // Build full prompt with trigger word
@@ -156,7 +127,7 @@ export const generateRouter = router({
         await db.collection<GeneratedImageDoc>("generated_images").insertOne({
           _id: id,
           loraTrainingId: input.loraTrainingId,
-          walletAddress,
+          ownerId: ctx.viewer.id,
           prompt: input.prompt,
           imageUrl: image.url,
           cdnUrl,
@@ -198,7 +169,7 @@ export const generateRouter = router({
 
   listByLora: publicProcedure
     .input(z.object({ loraTrainingId: z.string().min(1) }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
 
       const docs = await db
@@ -209,7 +180,7 @@ export const generateRouter = router({
 
       return docs.map((doc) => ({
         id: doc._id,
-        walletAddress: doc.walletAddress,
+        isOwner: isOwner(ctx.viewer, doc),
         prompt: doc.prompt,
         imageUrl: doc.imageUrl,
         cdnUrl: doc.cdnUrl ?? null,
@@ -225,38 +196,10 @@ export const generateRouter = router({
       }));
     }),
 
-  remaining: protectedProcedure.query(async ({ ctx }) => {
-    const walletAddress = ctx.session.user.walletAddress;
-    const exempt = isPaymentExempt(walletAddress);
-
-    if (exempt) {
-      return { remaining: RATE_LIMIT_BATCHES, limit: RATE_LIMIT_BATCHES, isExempt: true };
-    }
-
-    const db = await getDb();
-
-    const windowStart = new Date(
-      Date.now() - RATE_LIMIT_WINDOW_MS,
-    ).toISOString();
-
-    const imageCount = await db
-      .collection<GeneratedImageDoc>("generated_images")
-      .countDocuments({
-        walletAddress,
-        createdAt: { $gt: windowStart },
-      });
-
-    const batchCount = Math.ceil(imageCount / IMAGES_PER_BATCH);
-    const remaining = Math.max(0, RATE_LIMIT_BATCHES - batchCount);
-
-    return { remaining, limit: RATE_LIMIT_BATCHES, isExempt: false };
-  }),
-
   hideImage: protectedProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      const walletAddress = ctx.session.user.walletAddress;
 
       const doc = await db
         .collection<GeneratedImageDoc>("generated_images")
@@ -266,7 +209,7 @@ export const generateRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Image not found." });
       }
 
-      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      if (!isOwner(ctx.viewer, doc)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this image." });
       }
 
@@ -281,7 +224,6 @@ export const generateRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      const walletAddress = ctx.session.user.walletAddress;
 
       const doc = await db
         .collection<GeneratedImageDoc>("generated_images")
@@ -291,7 +233,7 @@ export const generateRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Image not found." });
       }
 
-      if (doc.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      if (!isOwner(ctx.viewer, doc)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You are not the owner of this image." });
       }
 
@@ -302,26 +244,20 @@ export const generateRouter = router({
       return { success: true };
     }),
 
-  listHiddenImages: publicProcedure
-    .input(z.object({ walletAddress: z.string().optional() }).optional())
-    .query(async ({ input }) => {
+  /** The viewer's own hidden images. */
+  listHiddenImages: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-
-      const filter: Record<string, unknown> = { hidden: true };
-      if (input?.walletAddress) {
-        filter.walletAddress = { $regex: `^${input.walletAddress.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: "i" };
-      }
 
       const docs = await db
         .collection<GeneratedImageDoc>("generated_images")
-        .find(filter)
+        .find({ hidden: true, ownerId: ctx.viewer.id })
         .sort({ createdAt: -1 })
         .toArray();
 
       return docs.map((doc) => ({
         id: doc._id,
         loraTrainingId: doc.loraTrainingId,
-        walletAddress: doc.walletAddress,
+        isOwner: true,
         prompt: doc.prompt,
         imageUrl: doc.imageUrl,
         cdnUrl: doc.cdnUrl ?? null,

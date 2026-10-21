@@ -13,7 +13,8 @@ interface GeneratedImage {
   width?: number | null;
   height?: number | null;
   loraScaleName?: string | null;
-  walletAddress?: string;
+  /** Whether the viewer owns this image — enables the hide toggle. */
+  isOwner?: boolean;
   hidden?: boolean;
 }
 
@@ -30,8 +31,6 @@ interface GeneratedImageGridProps {
   onImageClick?: (index: number) => void;
   /** Optional React node rendered as the first grid cell (e.g. a CTA tile) */
   prependTile?: React.ReactNode;
-  /** Current viewer's wallet address — enables hide toggle when it matches an image's wallet */
-  currentWallet?: string;
 }
 
 function formatDate(iso: string): string {
@@ -45,17 +44,11 @@ function formatDate(iso: string): string {
   });
 }
 
-function isOwner(currentWallet: string | undefined, imgWallet: string | undefined): boolean {
-  if (!currentWallet || !imgWallet) return false;
-  return currentWallet.toLowerCase() === imgWallet.toLowerCase();
-}
-
 export default function GeneratedImageGrid({
   images,
   variant = "page",
   onImageClick,
   prependTile,
-  currentWallet,
 }: GeneratedImageGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -146,7 +139,7 @@ export default function GeneratedImageGrid({
                   </div>
 
                   {/* Hide toggle — lower right */}
-                  {isOwner(currentWallet, img.walletAddress) && (
+                  {img.isOwner && (
                     <div
                       style={{
                         position: "absolute",
