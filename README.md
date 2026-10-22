@@ -27,6 +27,7 @@ Create `.env.local` in the project root (or run `vercel env pull .env.local`):
 # Auth (Google, via the dmbk accounts API)
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=<the dmbk web OAuth client ID>
 DMBK_GRAPHQL_API_URL=https://graphql.dmbk.network/graphql  # optional, this is the default
+DMBK_GRAPHQL_API_KEY=<this app's key for the dmbk API>      # server-only; required in production
 
 # Database (MongoDB)
 MONGODB_URI=mongodb+srv://user:pass@your-cluster.mongodb.net/lora-trainer
@@ -68,6 +69,7 @@ Pushes to `main` deploy to production. Set these in the Vercel project:
 | ------------------------------ | ------------------------------------------------------------ |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | The dmbk web OAuth client ID (same client the API verifies)  |
 | `DMBK_GRAPHQL_API_URL`         | Optional; defaults to `https://graphql.dmbk.network/graphql` |
+| `DMBK_GRAPHQL_API_KEY`         | This app's key for the dmbk API, sent as `x-api-key`; issued with `npm run api-client -- create lora-trainer` in dmbk-graphql-api. Never `NEXT_PUBLIC_` |
 | `MONGODB_URI`                  | MongoDB connection string                                    |
 | `FAL_AI_API_KEY`               | [FAL.ai](https://fal.ai/dashboard) API key                   |
 | `DO_SPACES_*`                  | DigitalOcean Spaces config, as above                         |

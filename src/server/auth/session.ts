@@ -53,6 +53,26 @@ export function apiUrl(): string {
   return process.env.DMBK_GRAPHQL_API_URL || "https://graphql.dmbk.network/graphql";
 }
 
+let warnedNoKey = false;
+
+/**
+ * This app's key for the API (`DMBK_GRAPHQL_API_KEY`), sent as `x-api-key` on
+ * every call. Without one the API treats a request as its public playground:
+ * anonymous, read-only and rate-limited. In production a missing key is a
+ * deploy mistake, so it throws rather than quietly degrading; in development
+ * it warns once and calls without one.
+ */
+export function apiKey(): string | undefined {
+  const key = process.env.DMBK_GRAPHQL_API_KEY;
+  if (key) return key;
+  if (process.env.NODE_ENV === "production") throw new Error("DMBK_GRAPHQL_API_KEY is not set.");
+  if (!warnedNoKey) {
+    warnedNoKey = true;
+    console.warn("[dmbk-api] DMBK_GRAPHQL_API_KEY is not set; calling the API without a key.");
+  }
+  return undefined;
+}
+
 export interface GqlResponse<T> {
   data?: T | null;
   errors?: { message: string; extensions?: { code?: string } }[];
@@ -63,12 +83,14 @@ export async function callApi<T>(
   variables: Record<string, unknown> = {},
   token?: string,
 ): Promise<GqlResponse<T>> {
+  const key = apiKey();
   let res: Response;
   try {
     res = await fetch(apiUrl(), {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        ...(key ? { "x-api-key": key } : {}),
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ query, variables }),
