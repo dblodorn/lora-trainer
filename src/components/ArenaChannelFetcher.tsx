@@ -22,9 +22,18 @@ export type TrainingPhase =
   | "completed"
   | "failed";
 
-export default function ArenaChannelFetcher() {
+interface ArenaChannelFetcherProps {
+  /**
+   * The channel URL from `?channel=`, or "". The page remounts this component
+   * whenever it changes (it is the `key`), so each channel, and the landing
+   * view, starts with fresh form and training state.
+   */
+  channel: string;
+}
+
+export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProps) {
   const router = useRouter();
-  const [submittedUrl, setSubmittedUrl] = useState("");
+  const submittedUrl = channel;
   const [trainingRequestId, setTrainingRequestId] = useState<string | null>(
     null,
   );
@@ -36,7 +45,7 @@ export default function ArenaChannelFetcher() {
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
-      url: "",
+      url: channel,
       selectedImages: [],
       triggerWord: "",
       trainingSteps: 1000,
@@ -44,27 +53,6 @@ export default function ArenaChannelFetcher() {
   });
 
   const selectedImages = useWatch({ control, name: "selectedImages" });
-
-  // Seed training view from URL query param
-  useEffect(() => {
-    const channelParam = router.query.channel;
-    if (channelParam && typeof channelParam === "string") {
-      setValue("url", channelParam);
-      setSubmittedUrl(channelParam);
-    } else if (submittedUrl) {
-      // Channel param was cleared — reset to landing state
-      setSubmittedUrl("");
-      setTrainingRequestId(null);
-      setTrainingLoraId(null);
-      setTrainingPhase("idle");
-      setTrainingError(null);
-      hasSavedRef.current = false;
-      setValue("url", "");
-      setValue("selectedImages", []);
-      setValue("triggerWord", "");
-      setValue("trainingSteps", 1000);
-    }
-  }, [router.query.channel]);
 
   const { data, isLoading, error } = useArenaChannelImages(submittedUrl);
 
@@ -84,25 +72,21 @@ export default function ArenaChannelFetcher() {
     },
   );
 
-  // Derive phase from status response
-  useEffect(() => {
-    if (!trainingStatus.data) return;
-    const s = trainingStatus.data.status;
-    if (s === "IN_QUEUE") {
-      setTrainingPhase("queued");
-    } else if (s === "IN_PROGRESS") {
-      setTrainingPhase("training");
-    } else if (s === "COMPLETED") {
-      setTrainingPhase("completed");
-    }
-  }, [trainingStatus.data]);
-
-  useEffect(() => {
-    if (trainingStatus.error) {
+  // Follow the phase from each new status response, or fail on a polling
+  // error. Adjusted during render rather than in an effect.
+  const [seenStatus, setSeenStatus] = useState({ data: trainingStatus.data, error: trainingStatus.error });
+  if (trainingStatus.data !== seenStatus.data || trainingStatus.error !== seenStatus.error) {
+    setSeenStatus({ data: trainingStatus.data, error: trainingStatus.error });
+    if (trainingStatus.error && trainingStatus.error !== seenStatus.error) {
       setTrainingPhase("failed");
       setTrainingError(trainingStatus.error.message);
+    } else if (trainingStatus.data && trainingStatus.data !== seenStatus.data) {
+      const s = trainingStatus.data.status;
+      if (s === "IN_QUEUE") setTrainingPhase("queued");
+      else if (s === "IN_PROGRESS") setTrainingPhase("training");
+      else if (s === "COMPLETED") setTrainingPhase("completed");
     }
-  }, [trainingStatus.error]);
+  }
 
   const trainingResult = trpc.fal.getTrainingResult.useQuery(
     { requestId: trainingRequestId! },
@@ -111,7 +95,7 @@ export default function ArenaChannelFetcher() {
 
   // --- Auto-save completed LoRA to gallery ---
   const hasSavedRef = useRef(false);
-  const completeLoraM = trpc.fal.completeTraining.useMutation({
+  const { mutate: completeLora } = trpc.fal.completeTraining.useMutation({
     onError: (error) => console.error("Failed to save the completed LoRA:", error),
   });
 
@@ -131,13 +115,13 @@ export default function ArenaChannelFetcher() {
       const loraUrl = loraFile?.url ?? configFile?.url;
       if (loraUrl) {
         hasSavedRef.current = true;
-        completeLoraM.mutate({
+        completeLora({
           requestId: trainingRequestId,
           loraWeightsUrl: loraUrl,
         });
       }
     }
-  }, [trainingPhase, trainingResult.data, trainingRequestId]);
+  }, [trainingPhase, trainingResult.data, trainingRequestId, completeLora]);
 
   // --- Mutations ---
   const trainLoraMutation = trpc.fal.trainLora.useMutation({
@@ -175,7 +159,7 @@ export default function ArenaChannelFetcher() {
   });
 
   const loadChannel = (url: string) => {
-    setSubmittedUrl(url);
+    // The page remounts this component for the new channel.
     router.replace({ query: { channel: url } }, undefined, { shallow: true });
   };
 
@@ -231,22 +215,11 @@ export default function ArenaChannelFetcher() {
     }
   }, [getValues, trainLoraMutation, submittedUrl, data]);
 
+  // Back to the landing view. Clearing `?channel=` remounts this component,
+  // which resets the form and training state.
   const handleResetTraining = useCallback(() => {
-    // Reset training state
-    setTrainingRequestId(null);
-    setTrainingLoraId(null);
-    setTrainingPhase("idle");
-    setTrainingError(null);
-    hasSavedRef.current = false;
-    // Reset arena / form state
-    setSubmittedUrl("");
-    setValue("url", "");
-    setValue("selectedImages", []);
-    setValue("triggerWord", "");
-    setValue("trainingSteps", 1000);
-    // Clear URL query param
     router.replace({ query: {} }, undefined, { shallow: true });
-  }, [setValue]);
+  }, [router]);
 
   const handleCancelTraining = useCallback(() => {
     if (trainingRequestId) {

@@ -356,10 +356,12 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
   // Per-image pan (Ken Burns) velocity state
   const panFromRef = useRef<PanState>({ vx: 0, vy: 0, startTime: 0 });
   const panToRef = useRef<PanState>({ vx: 0, vy: 0, startTime: 0 });
-  // Per-transition random seed (4 values in [0,1]) for dissolve variation
-  const transitionSeedRef = useRef<[number, number, number, number]>([
+  // Per-transition random seed (4 values in [0,1]) for dissolve variation.
+  // Drawn once, in a lazy initializer, so rendering stays pure.
+  const [initialSeed] = useState<[number, number, number, number]>(() => [
     Math.random(), Math.random(), Math.random(), Math.random(),
   ]);
+  const transitionSeedRef = useRef(initialSeed);
   // State machine: "holding" | "transitioning" | "waiting"
   // "waiting" = transition hit 1.0, loading next image, clamp progress at 1
   const phaseRef = useRef<"holding" | "transitioning" | "waiting">("holding");

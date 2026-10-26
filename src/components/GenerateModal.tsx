@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, Button, Modal, TextArea, Alert, Loader, ToggleButton, ToggleButtonGroup, NumberField } from "reshaped";
 import { trpc } from "@/utils/trpc";
 import { useSession } from "@/lib/session";
@@ -63,16 +63,26 @@ export default function GenerateModal({
     },
   });
 
-  useEffect(() => {
+  // Start each opening fresh (the prompt is kept). Adjusted during render
+  // rather than in an effect; the mutation's own state is cleared on close.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
     if (active) {
       setGeneratedImages([]);
       setNsfwWarning(false);
       setLoraScale(DEFAULT_LORA_SCALE);
       setImageWidth(DEFAULT_IMAGE_WIDTH);
       setImageHeight(DEFAULT_IMAGE_HEIGHT);
-      generateMutation.reset();
     }
-  }, [active]);
+  }
+
+  const handleClose = useCallback(() => {
+    // Not while a batch is in flight: resetting would detach its onSuccess,
+    // and the LoRA's list would never refetch the new images.
+    if (!generateMutation.isPending) generateMutation.reset();
+    onClose();
+  }, [generateMutation, onClose]);
 
   const handleGenerate = useCallback(() => {
     if (!viewer) {
@@ -109,7 +119,7 @@ export default function GenerateModal({
   const hasResults = generatedImages.length > 0;
 
   return (
-    <Modal active={active} onClose={onClose} position="center" padding={6} size="640px">
+    <Modal active={active} onClose={handleClose} position="center" padding={6} size="640px">
       <View gap={4} direction="column">
         <View gap={1}>
           <TextArea
