@@ -6,7 +6,7 @@
     "dev": "npm run relay && next dev",
     "build": "npm run relay && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "npm run relay && tsc --noEmit",
     "prepare": "husky",
     "schema:pull:api": "node ./scripts/fetch-api-schema.mjs",

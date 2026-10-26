@@ -13,7 +13,7 @@ Use **npm** (there is a `package-lock.json`).
 - `npm run schema:pull:api`: refresh `schemas/dmbk-graphql-api.graphql` (checked in) from the API. Run it on purpose when the API changes, then commit it; the compiler validates against this copy.
 - `npm run typecheck`: `relay` then `tsc --noEmit`. The `pre-push` husky hook runs both and blocks the push if either fails.
 - `npm run build`
-- Lint with `npx eslint .`. `npm run lint` calls `next lint`, which Next 16 removed, so that script no longer works.
+- `npm run lint`: `eslint .`, with `eslint-config-next`'s flat configs imported directly in `eslint.config.mjs` (going through `FlatCompat` crashes ESLint 9). It includes the React Compiler rules, so reset state during render or with a `key`, not by setting it in an effect.
 - There is no test runner. The files in `src/server/api/features/__tests__/` are empty placeholders.
 
 ## Architecture
