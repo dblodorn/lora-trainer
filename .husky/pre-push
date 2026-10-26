@@ -1,8 +1,20 @@
 #!/bin/sh
 echo "🔍 Running TypeScript type check before push..."
 
+# Compile the Relay operations first: tsc needs their generated types, and a
+# schema mismatch should block the push the same way a type error does.
+if ! node scripts/relay.mjs; then
+  echo "❌ Relay compile failed! Push aborted."
+  exit 1
+fi
+
 # Run tsc directly with a generous timeout (cold starts can be slow)
-timeout 240 ./node_modules/.bin/tsc --noEmit
+# `timeout` is GNU coreutils; macOS has it only with coreutils installed.
+if command -v timeout >/dev/null 2>&1; then
+  timeout 240 ./node_modules/.bin/tsc --noEmit
+else
+  ./node_modules/.bin/tsc --noEmit
+fi
 status=$?
 
 if [ $status -ne 0 ]; then

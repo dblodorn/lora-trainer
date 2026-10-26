@@ -4,15 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 
 interface SlideshowImage {
   id: string;
-  imageUrl: string;
-  cdnUrl?: string | null;
+  /** The Spaces copy when there is one, otherwise the original. */
+  url: string;
   prompt: string;
   loraScaleName?: string | null;
 }
 
-/** Prefer CDN URL, fallback to original imageUrl */
 function displayUrl(img: SlideshowImage): string {
-  return img.cdnUrl ?? img.imageUrl;
+  return img.url;
 }
 
 interface SlideshowModalProps {

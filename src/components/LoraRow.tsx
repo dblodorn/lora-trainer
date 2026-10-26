@@ -1,17 +1,13 @@
 import { View, Text, Button } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import { graphql, useFragment } from "react-relay";
+import { fromTrainingGlobalId } from "@/lib/relay/ids";
+import type { LoraRow_training$key } from "./__generated__/LoraRow_training.graphql";
 import ArenaChannelBadge from "./ArenaChannelBadge";
 
 interface LoraRowProps {
-  id: string;
-  triggerWord: string;
-  loraWeightsUrl: string | null;
-  imageUrls: string[];
-  steps: number;
-  createdAt: string;
-  arenaChannelUrl?: string | null;
-  arenaChannelTitle?: string | null;
+  training: LoraRow_training$key;
 }
 
 function formatDate(iso: string): string {
@@ -23,16 +19,23 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function LoraRow({
-  id,
-  triggerWord,
-  loraWeightsUrl,
-  imageUrls,
-  steps,
-  createdAt,
-  arenaChannelUrl,
-  arenaChannelTitle,
-}: LoraRowProps) {
+export default function LoraRow({ training }: LoraRowProps) {
+  const lora = useFragment(
+    graphql`
+      fragment LoraRow_training on LoraTraining {
+        id
+        triggerWord
+        steps
+        createdAt
+        trainingImageUrls
+        arenaChannelUrl
+        arenaChannelTitle
+      }
+    `,
+    training,
+  );
+  const { triggerWord, steps, createdAt, arenaChannelUrl, arenaChannelTitle } = lora;
+  const imageUrls = lora.trainingImageUrls;
   const maxThumbnails = 4;
   const visibleImages = imageUrls.slice(0, maxThumbnails);
   const overflow = imageUrls.length - maxThumbnails;
@@ -103,7 +106,7 @@ export default function LoraRow({
 
       {/* Actions */}
       <View direction="row" gap={2}>
-        <NextLink href={`/loras/${id}`} passHref legacyBehavior>
+        <NextLink href={`/loras/${fromTrainingGlobalId(lora.id)}`} passHref legacyBehavior>
           <Button as="a" color="primary" size="medium" attributes={{ style: { width: 120 } }}>
             View
           </Button>

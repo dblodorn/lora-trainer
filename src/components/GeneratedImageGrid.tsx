@@ -4,23 +4,24 @@ import NextImage from "next/image";
 import { Maximize2 } from "lucide-react";
 import GeneratedImageHideToggle from "./GeneratedImageHideToggle";
 
-interface GeneratedImage {
+export interface GeneratedImage {
   id: string;
-  imageUrl: string;
-  cdnUrl?: string | null;
+  /** The Spaces copy when there is one, otherwise the fal.ai URL. */
+  url: string;
   prompt: string;
   createdAt: string;
   width?: number | null;
   height?: number | null;
   loraScaleName?: string | null;
-  /** Whether the viewer owns this image — enables the hide toggle. */
-  isOwner?: boolean;
-  hidden?: boolean;
+  /**
+   * The image's visibility when the viewer owns it (the API reveals it to the
+   * owner only), which enables the hide toggle. Null or absent otherwise.
+   */
+  hidden?: boolean | null;
 }
 
-/** Prefer CDN URL, fallback to original imageUrl */
 function displayUrl(img: GeneratedImage): string {
-  return img.cdnUrl ?? img.imageUrl;
+  return img.url;
 }
 
 interface GeneratedImageGridProps {
@@ -31,6 +32,8 @@ interface GeneratedImageGridProps {
   onImageClick?: (index: number) => void;
   /** Optional React node rendered as the first grid cell (e.g. a CTA tile) */
   prependTile?: React.ReactNode;
+  /** The Relay connections the images come from; a hide toggle removes from them. */
+  connections?: string[];
 }
 
 function formatDate(iso: string): string {
@@ -49,6 +52,7 @@ export default function GeneratedImageGrid({
   variant = "page",
   onImageClick,
   prependTile,
+  connections = [],
 }: GeneratedImageGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -139,7 +143,7 @@ export default function GeneratedImageGrid({
                   </div>
 
                   {/* Hide toggle — lower right */}
-                  {img.isOwner && (
+                  {img.hidden != null && (
                     <div
                       style={{
                         position: "absolute",
@@ -156,7 +160,7 @@ export default function GeneratedImageGrid({
                         boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
                       }}
                     >
-                      <GeneratedImageHideToggle id={img.id} hidden={img.hidden ?? false} />
+                      <GeneratedImageHideToggle id={img.id} hidden={img.hidden} connections={connections} />
                     </div>
                   )}
                 </div>

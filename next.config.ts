@@ -3,6 +3,17 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   devIndicators: false,
+  // Compiles `graphql` tagged literals (react-relay) into imports of the
+  // artifacts `npm run relay` writes to `__generated__/` beside each file.
+  // Settings mirror relay.config.json; the two must agree or the transform
+  // points at artifacts the compiler never wrote.
+  compiler: {
+    relay: {
+      src: "./src",
+      language: "typescript",
+      eagerEsModules: true,
+    },
+  },
   experimental: {
     optimizePackageImports: ["reshaped"],
   },

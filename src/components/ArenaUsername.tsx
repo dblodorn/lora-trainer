@@ -1,27 +1,83 @@
 import { useState } from "react";
 import { Alert, Button, Text, TextField, View } from "reshaped";
-import { trpc } from "@/utils/trpc";
+import { graphql, useLazyLoadQuery, useMutation } from "react-relay";
+import { ApiError } from "@/lib/relay/environment";
+import type { ArenaUsernameQuery } from "./__generated__/ArenaUsernameQuery.graphql";
+import type { ArenaUsernameSetMutation } from "./__generated__/ArenaUsernameSetMutation.graphql";
+import type { ArenaUsernameClearMutation } from "./__generated__/ArenaUsernameClearMutation.graphql";
 
 /*
  * The Are.na username saved on your dmbk account, which the Train page's
  * channel picker lists channels for. Only public and closed channels are read,
- * so no Are.na sign-in is involved.
+ * so no Are.na sign-in is involved. Render under a FeatureBoundary.
+ *
+ * The viewer has no global ID, so the mutations' payloads can't update this
+ * query's record in place; it refetches instead. The channel picker refetches
+ * whenever it is shown.
  */
 
 export default function ArenaUsername() {
-  const utils = trpc.useUtils();
-  const profile = trpc.arena.profile.useQuery();
+  const [fetchKey, setFetchKey] = useState(0);
+  const { viewer } = useLazyLoadQuery<ArenaUsernameQuery>(
+    graphql`
+      query ArenaUsernameQuery {
+        viewer {
+          arena {
+            user {
+              slug
+              name
+            }
+          }
+        }
+      }
+    `,
+    {},
+    { fetchKey, fetchPolicy: fetchKey === 0 ? "store-or-network" : "network-only" },
+  );
   const [slug, setSlug] = useState("");
+  const [error, setError] = useState<Error | null>(null);
 
-  const onChanged = () => {
-    utils.arena.profile.invalidate();
-    utils.arena.myChannels.invalidate();
+  const [commitSet, isSetting] = useMutation<ArenaUsernameSetMutation>(graphql`
+    mutation ArenaUsernameSetMutation($input: ArenaSetUserInput!) {
+      arenaSetUser(input: $input) {
+        viewer {
+          arena {
+            user {
+              slug
+            }
+          }
+        }
+      }
+    }
+  `);
+  const [commitClear, isClearing] = useMutation<ArenaUsernameClearMutation>(graphql`
+    mutation ArenaUsernameClearMutation {
+      arenaClearUser
+    }
+  `);
+
+  const onChanged = () => setFetchKey((k) => k + 1);
+
+  const save = (value: string) => {
+    // Accept a pasted profile URL as well as a bare username.
+    const parsed = value.replace(/^https?:\/\/(www\.)?are\.na\//, "").split("/")[0];
+    setError(null);
+    commitSet({
+      variables: { input: { slug: parsed } },
+      onCompleted: () => {
+        setSlug("");
+        onChanged();
+      },
+      onError: setError,
+    });
   };
-  const setUser = trpc.arena.setUser.useMutation({ onSuccess: () => { setSlug(""); onChanged(); } });
-  const clearUser = trpc.arena.clearUser.useMutation({ onSuccess: onChanged });
 
-  if (profile.isLoading) return null;
-  const user = profile.data;
+  const clear = () => {
+    setError(null);
+    commitClear({ variables: {}, onCompleted: onChanged, onError: setError });
+  };
+
+  const user = viewer?.arena?.user ?? null;
 
   return (
     <View gap={3} attributes={{ style: { minWidth: 280, maxWidth: 400 } }}>
@@ -37,7 +93,7 @@ export default function ArenaUsername() {
             </a>{" "}
             <Text as="span" color="neutral-faded">({user.slug})</Text>
           </Text>
-          <Button color="neutral" fullWidth loading={clearUser.isPending} onClick={() => clearUser.mutate()}>
+          <Button color="neutral" fullWidth loading={isClearing} onClick={clear}>
             Remove
           </Button>
         </View>
@@ -48,7 +104,7 @@ export default function ArenaUsername() {
           attributes={{
             onSubmit: (e) => {
               e.preventDefault();
-              if (slug.trim()) setUser.mutate({ slug: slug.trim() });
+              if (slug.trim()) save(slug.trim());
             },
           }}
         >
@@ -58,7 +114,7 @@ export default function ArenaUsername() {
             value={slug}
             onChange={({ value }) => setSlug(value)}
           />
-          <Button type="submit" color="primary" fullWidth loading={setUser.isPending} disabled={!slug.trim()}>
+          <Button type="submit" color="primary" fullWidth loading={isSetting} disabled={!slug.trim()}>
             Save
           </Button>
           <Text variant="caption-1" color="neutral-faded">
@@ -67,14 +123,13 @@ export default function ArenaUsername() {
         </View>
       )}
 
-      {setUser.error && (
+      {error && (
         <Alert color="critical">
-          {setUser.error.data?.code === "NOT_FOUND"
+          {error instanceof ApiError && error.code === "NOT_FOUND"
             ? "No Are.na user with that username."
-            : setUser.error.message}
+            : error.message}
         </Alert>
       )}
-      {clearUser.error && <Alert color="critical">{clearUser.error.message}</Alert>}
     </View>
   );
 }

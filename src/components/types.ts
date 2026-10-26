@@ -17,4 +17,12 @@ export const formSchema = z.object({
 
 export type FormData = z.infer<typeof formSchema>;
 
-export type { ArenaImage } from "@/server/api/features/arena";
+/** An image block in an Are.na channel, as the dmbk API returns it. */
+export interface ArenaImage {
+  id: number;
+  title: string | null;
+  src: string;
+  thumbnailSrc: string;
+  width: number | null;
+  height: number | null;
+}

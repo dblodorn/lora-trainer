@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm run relay && next dev",
+    "build": "npm run relay && next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "migrate:fal-to-spaces": "tsx scripts/migrate-fal-to-spaces.mts",
-    "prepare": "husky"
+    "typecheck": "npm run relay && tsc --noEmit",
+    "prepare": "husky",
+    "schema:pull:api": "node ./scripts/fetch-api-schema.mjs",
+    "relay": "node scripts/relay.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1092.0",
@@ -23,11 +24,12 @@
     "dotenv": "^16.4.5",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.27.0",
-    "mongodb": "^7.5.0",
     "next": "16.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.60.0",
+    "react-relay": "^21.0.1",
+    "relay-runtime": "^21.0.1",
     "reshaped": "^3.9.0",
     "usehooks-ts": "^3.1.1",
     "zod": "^3.22.4"
@@ -42,9 +44,11 @@
     "cssnano": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "get-graphql-schema": "^2.1.2",
     "husky": "^9.1.7",
     "postcss": "^8.4.49",
     "postcss-custom-media": "^12.0.0",
+    "relay-compiler": "^21.0.1",
     "tsx": "^4.23.1",
     "typescript": "^5"
   }

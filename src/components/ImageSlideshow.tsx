@@ -1,5 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { trpc } from "@/utils/trpc";
+import { fetchQuery, graphql, useRelayEnvironment } from "react-relay";
+import type { ImageSlideshowQuery } from "./__generated__/ImageSlideshowQuery.graphql";
+
+/*
+ * Random visible images from the dmbk API. Fetched imperatively rather than
+ * with a suspending query: the slideshow is a background, it refills its own
+ * queue as it plays, and a failed fetch should leave it blank, not throw.
+ */
+const slideshowQuery = graphql`
+  query ImageSlideshowQuery($count: Int!) {
+    loraTrainerSlideshowImages(count: $count) {
+      url
+    }
+  }
+`;
 
 // ---------------------------------------------------------------------------
 // GLSL Shaders (inlined as template literals)
@@ -351,30 +365,48 @@ export default function ImageSlideshow({ images }: ImageSlideshowProps = {}) {
   const phaseRef = useRef<"holding" | "transitioning" | "waiting">("holding");
   const isAdvancingRef = useRef(false);
 
-  // tRPC — only fetch random images when no custom images provided
-  const utils = trpc.useUtils();
-  const { data: initialData } = trpc.slideshow.randomImages.useQuery(
-    { count: BATCH_SIZE },
-    { refetchOnWindowFocus: false, staleTime: 0, enabled: !isCustomMode },
-  );
+  // Only fetch random images when no custom images provided
+  const environment = useRelayEnvironment();
+  const [initialData, setInitialData] = useState<{ urls: string[] } | null>(null);
+
+  const fetchBatch = useCallback(async (): Promise<string[]> => {
+    const data = await fetchQuery<ImageSlideshowQuery>(
+      environment,
+      slideshowQuery,
+      { count: BATCH_SIZE },
+      { fetchPolicy: "network-only" },
+    ).toPromise();
+    return data?.loraTrainerSlideshowImages.map((img) => img.url) ?? [];
+  }, [environment]);
+
+  useEffect(() => {
+    if (isCustomMode) return;
+    let cancelled = false;
+    fetchBatch()
+      .then((urls) => {
+        if (!cancelled) setInitialData({ urls });
+      })
+      .catch((e) => console.error("Slideshow: failed to fetch images", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchBatch, isCustomMode]);
 
   // Fetch more images lazily
   const fetchMore = useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     try {
-      const result = await utils.slideshow.randomImages.fetch({
-        count: BATCH_SIZE,
-      });
-      if (result.urls.length > 0) {
-        queueRef.current.push(...result.urls);
+      const urls = await fetchBatch();
+      if (urls.length > 0) {
+        queueRef.current.push(...urls);
       }
     } catch (e) {
       console.error("Slideshow: failed to fetch more images", e);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [utils]);
+  }, [fetchBatch]);
 
   // Seed queue from custom images or fetched data
   useEffect(() => {

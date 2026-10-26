@@ -1,7 +1,11 @@
+import { useEffect } from "react";
 import NextLink from "next/link";
 import { Select, Text, View } from "reshaped";
-import { trpc } from "@/utils/trpc";
+import { graphql, useLazyLoadQuery, usePaginationFragment } from "react-relay";
 import { useSession } from "@/lib/session";
+import FeatureBoundary from "./FeatureBoundary";
+import type { ArenaChannelPickerQuery } from "./__generated__/ArenaChannelPickerQuery.graphql";
+import type { ArenaChannelPicker_viewer$key } from "./__generated__/ArenaChannelPicker_viewer.graphql";
 
 /*
  * Your Are.na channels, from the username saved on /auth. Picking one loads it
@@ -9,29 +13,77 @@ import { useSession } from "@/lib/session";
  * when no username is saved.
  */
 
+/** Each page re-lists the channels on Are.na, so follow pages only this far. */
+const MAX_PAGES = 10;
+const PAGE_SIZE = 100;
+
 interface ArenaChannelPickerProps {
   onPick: (url: string) => void;
   disabled?: boolean;
 }
 
-export default function ArenaChannelPicker({ onPick, disabled }: ArenaChannelPickerProps) {
+export default function ArenaChannelPicker(props: ArenaChannelPickerProps) {
   const { viewer } = useSession();
-  const channels = trpc.arena.myChannels.useQuery(undefined, {
-    enabled: !!viewer,
-    staleTime: 5 * 60_000,
-  });
+  if (!viewer) return null;
+  return (
+    <FeatureBoundary errorTitle="Couldn't load your Are.na channels" fallback={null}>
+      <ChannelSelect {...props} />
+    </FeatureBoundary>
+  );
+}
 
-  if (!viewer || channels.isLoading) return null;
+function ChannelSelect(props: ArenaChannelPickerProps) {
+  // store-and-network: the username may have changed on /auth since.
+  const { viewer } = useLazyLoadQuery<ArenaChannelPickerQuery>(
+    graphql`
+      query ArenaChannelPickerQuery($count: Int!, $cursor: String) {
+        viewer {
+          ...ArenaChannelPicker_viewer @arguments(count: $count, cursor: $cursor)
+        }
+      }
+    `,
+    { count: PAGE_SIZE },
+    { fetchPolicy: "store-and-network" },
+  );
+  if (!viewer) return null;
+  return <ChannelList viewer={viewer} {...props} />;
+}
 
-  if (channels.error) {
-    return (
-      <Text variant="caption-1" color="critical">
-        Couldn&apos;t load your Are.na channels: {channels.error.message}
-      </Text>
-    );
-  }
+function ChannelList({ viewer, onPick, disabled }: ArenaChannelPickerProps & { viewer: ArenaChannelPicker_viewer$key }) {
+  const { data, hasNext, isLoadingNext, loadNext } = usePaginationFragment(
+    graphql`
+      fragment ArenaChannelPicker_viewer on Viewer
+      @argumentDefinitions(count: { type: "Int!" }, cursor: { type: "String" })
+      @refetchable(queryName: "ArenaChannelPickerPaginationQuery") {
+        arena {
+          channels(first: $count, after: $cursor) @connection(key: "ArenaChannelPicker_channels") {
+            edges {
+              node {
+                slug
+                title
+                url
+                visibility
+                blockCount
+                owner {
+                  name
+                  isGroup
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+    viewer,
+  );
 
-  if (channels.data === null) {
+  const edges = data.arena?.channels.edges;
+  const pages = Math.ceil((edges?.length ?? 0) / PAGE_SIZE);
+  useEffect(() => {
+    if (hasNext && !isLoadingNext && pages < MAX_PAGES) loadNext(PAGE_SIZE);
+  }, [hasNext, isLoadingNext, pages, loadNext]);
+
+  if (!edges) {
     return (
       <Text variant="caption-1" color="neutral-faded">
         <NextLink href="/auth">Add your Are.na username</NextLink> to pick from your channels.
@@ -39,7 +91,7 @@ export default function ArenaChannelPicker({ onPick, disabled }: ArenaChannelPic
     );
   }
 
-  const list = channels.data ?? [];
+  const list = edges.map((e) => e.node);
   if (list.length === 0) {
     return (
       <Text variant="caption-1" color="neutral-faded">

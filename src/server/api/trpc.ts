@@ -24,8 +24,3 @@ const enforceAuth = t.middleware(({ ctx, next }) => {
 });
 
 export const protectedProcedure = t.procedure.use(enforceAuth);
-
-/** Whether the viewer owns a record. Records from before accounts have no `ownerId`. */
-export function isOwner(viewer: Viewer | null, doc: { ownerId?: string | null }): boolean {
-  return !!viewer && !!doc.ownerId && doc.ownerId === viewer.id;
-}

@@ -1,0 +1,680 @@
+"""
+Indicates exactly one field must be supplied and this field must not be `null`.
+"""
+directive @oneOf on INPUT_OBJECT
+
+"""Exposes a URL that specifies the behavior of this scalar."""
+directive @specifiedBy(
+  """The URL that specifies the behavior of this scalar."""
+  url: String!
+) on SCALAR
+
+"""A public or closed Are.na channel."""
+type ArenaChannel {
+  blockCount: Int
+  id: Int!
+
+  """
+  The channel's image blocks, in the owner's order. One Are.na page per request,
+  so a page can hold fewer than `first`; follow `hasNextPage`.
+  """
+  images(after: String, before: String, first: Int, last: Int): ArenaChannelImagesConnection!
+  owner: ArenaChannelOwner!
+  slug: String!
+  title: String!
+
+  """ISO-8601."""
+  updatedAt: String!
+
+  """The channel on are.na."""
+  url: String!
+  visibility: ArenaVisibility!
+}
+
+type ArenaChannelImagesConnection {
+  edges: [ArenaChannelImagesConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ArenaChannelImagesConnectionEdge {
+  cursor: String!
+  node: ArenaImage!
+}
+
+"""The user or group that owns a channel."""
+type ArenaChannelOwner {
+  isGroup: Boolean!
+  name: String!
+  slug: String!
+}
+
+enum ArenaChannelSource {
+  """The user's own channels and their groups' channels."""
+  ALL
+
+  """Channels of the groups the user belongs to."""
+  GROUPS
+
+  """Channels the user created, including ones owned by a group."""
+  OWN
+}
+
+"""An image block in an Are.na channel."""
+type ArenaImage {
+  height: Int
+  id: Int!
+
+  """The original image."""
+  src: String!
+
+  """
+  A version about 400px on its longest side (served from images.are.na), or the original when there is none.
+  """
+  thumbnailSrc: String!
+  title: String
+  width: Int
+}
+
+"""
+The Are.na user this account saved with `arenaSetUser`. Not verified: it only selects public data.
+"""
+type ArenaProfile {
+  """
+  The user's public and closed channels plus their groups' channels, most recently updated first. Capped at 1,000.
+  """
+  channels(after: String, before: String, first: Int, last: Int, source: ArenaChannelSource = ALL): ArenaProfileChannelsConnection!
+  user: ArenaUser!
+}
+
+type ArenaProfileChannelsConnection {
+  edges: [ArenaProfileChannelsConnectionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+
+  """More channels exist than the 1,000 returned."""
+  truncated: Boolean!
+}
+
+type ArenaProfileChannelsConnectionEdge {
+  cursor: String!
+  node: ArenaChannel!
+}
+
+input ArenaSetUserInput {
+  clientMutationId: ID
+
+  """The Are.na username, as in are.na/<slug>."""
+  slug: String!
+}
+
+type ArenaSetUserPayload {
+  clientMutationId: ID
+  viewer: Viewer!
+}
+
+"""An Are.na user."""
+type ArenaUser {
+  avatarUrl: String
+  id: Int!
+  name: String!
+
+  """The username in are.na/<slug>."""
+  slug: String!
+}
+
+"""Private channels are never returned, so only these two appear."""
+enum ArenaVisibility {
+  """Anyone can view it; only collaborators can add to it."""
+  CLOSED
+
+  """Anyone can view and add to it."""
+  PUBLIC
+}
+
+input DmbkPhotosDeletePhotoInput {
+  clientMutationId: ID
+  id: ID!
+}
+
+type DmbkPhotosDeletePhotoPayload {
+  clientMutationId: ID
+
+  """For Relay `@deleteRecord`."""
+  deletedPhotoId: ID!
+}
+
+input DmbkPhotosFinalizePhotoInput {
+  clientMutationId: ID
+  id: ID!
+
+  """Omit to keep the reservation's. Replaces the full set."""
+  keywords: [String!]
+
+  """Omit to keep the reservation's; null clears it."""
+  title: String
+}
+
+type DmbkPhotosFinalizePhotoPayload {
+  clientMutationId: ID
+  photo: Photo!
+  photoEdge: DmbkPhotosPhotoEdge!
+}
+
+"""A photo with its cursor in the `dmbkPhotos` ordering."""
+type DmbkPhotosPhotoEdge {
+  cursor: String!
+  node: Photo!
+}
+
+input DmbkPhotosReservePhotoUploadInput {
+  """Size of the original in bytes; at most 50 MB."""
+  byteSize: Int!
+  clientMutationId: ID
+
+  """image/jpeg, image/png, image/webp or image/avif."""
+  contentType: String!
+  keywords: [String!]
+  title: String
+}
+
+type DmbkPhotosReservePhotoUploadPayload {
+  clientMutationId: ID
+
+  """The new photo, `PENDING`."""
+  photo: Photo!
+
+  """
+  PUT the original here, with the same Content-Type, then call `dmbkPhotosFinalizePhoto`. Expires after 15 minutes.
+  """
+  uploadUrl: String!
+}
+
+input DmbkPhotosSetPhotoHiddenInput {
+  clientMutationId: ID
+  hidden: Boolean!
+  id: ID!
+}
+
+type DmbkPhotosSetPhotoHiddenPayload {
+  clientMutationId: ID
+  photo: Photo!
+}
+
+input DmbkPhotosUpdatePhotoInput {
+  clientMutationId: ID
+  id: ID!
+
+  """Omit to leave unchanged. Replaces the photo's full set."""
+  keywords: [String!]
+
+  """Omit to leave unchanged; null clears it."""
+  title: String
+}
+
+type DmbkPhotosUpdatePhotoPayload {
+  clientMutationId: ID
+  photo: Photo!
+}
+
+"""An image generated with a LoRA."""
+type GeneratedImage implements Node {
+  """ISO-8601."""
+  createdAt: String!
+  height: Int
+
+  """Owner only."""
+  hidden: Boolean
+  id: ID!
+  loraScaleName: String
+  loraScaleValue: String
+  prompt: String!
+  seed: String
+
+  """Null when the LoRA is hidden from this viewer."""
+  training: LoraTraining
+
+  """The DO Spaces copy when mirrored, otherwise the original fal.ai URL."""
+  url: String!
+  width: Int
+}
+
+"""One keyword in the vocabulary."""
+type Keyword {
+  """Number of publicly visible photos carrying this keyword."""
+  count: Int!
+
+  """First human spelling seen."""
+  label: String!
+  slug: String!
+}
+
+enum LoraStatus {
+  COMPLETED
+  FAILED
+  PENDING
+}
+
+input LoraTrainerCompleteTrainingInput {
+  clientMutationId: ID
+  id: ID!
+
+  """
+  Backfilled source mirrors, under lora-trainer/. Replaces the stored ones.
+  """
+  imageUrlsSpaces: [String!]
+  loraWeightsUrl: String!
+}
+
+type LoraTrainerCompleteTrainingPayload {
+  clientMutationId: ID
+  loraTraining: LoraTraining!
+}
+
+input LoraTrainerCreateTrainingInput {
+  """Up to 200 characters."""
+  arenaChannelTitle: String
+  arenaChannelUrl: String
+  clientMutationId: ID
+
+  """1–20 https source image URLs."""
+  imageUrls: [String!]!
+
+  """The fal.ai queue request id. One training per request."""
+  requestId: String!
+
+  """100–2000."""
+  steps: Int!
+
+  """1–50 characters."""
+  triggerWord: String!
+}
+
+type LoraTrainerCreateTrainingPayload {
+  clientMutationId: ID
+  loraTraining: LoraTraining!
+}
+
+input LoraTrainerRecordImagesImageInput {
+  """The Spaces copy, under lora-trainer/."""
+  cdnUrl: String
+  genHeight: Int
+
+  """The size requested from fal.ai."""
+  genWidth: Int
+
+  """
+  32 lowercase hex characters, chosen by the client (it keys the image's Spaces copy).
+  """
+  id: String!
+  imageHeight: Int
+
+  """The fal.ai URL."""
+  imageUrl: String!
+  imageWidth: Int
+  loraScaleName: String
+  loraScaleValue: String
+
+  """1–1000 characters."""
+  prompt: String!
+  seed: String
+}
+
+input LoraTrainerRecordImagesInput {
+  clientMutationId: ID
+
+  """1–8 images."""
+  images: [LoraTrainerRecordImagesImageInput!]!
+  loraTrainingId: ID!
+}
+
+type LoraTrainerRecordImagesPayload {
+  clientMutationId: ID
+
+  """In input order."""
+  generatedImages: [GeneratedImage!]!
+  loraTraining: LoraTraining!
+}
+
+input LoraTrainerSetImageHiddenInput {
+  clientMutationId: ID
+  hidden: Boolean!
+  id: ID!
+}
+
+type LoraTrainerSetImageHiddenPayload {
+  clientMutationId: ID
+  generatedImage: GeneratedImage!
+}
+
+input LoraTrainerSetTrainingAssetsInput {
+  clientMutationId: ID
+  id: ID!
+
+  """
+  Spaces mirrors of the source images, under lora-trainer/. Omit to leave unchanged.
+  """
+  imageUrlsSpaces: [String!]
+
+  """Spaces CDN, under lora-trainer/. Omit to leave unchanged."""
+  trainingZipUrl: String
+}
+
+type LoraTrainerSetTrainingAssetsPayload {
+  clientMutationId: ID
+  loraTraining: LoraTraining!
+}
+
+input LoraTrainerSetTrainingHiddenInput {
+  clientMutationId: ID
+  hidden: Boolean!
+  id: ID!
+}
+
+type LoraTrainerSetTrainingHiddenPayload {
+  clientMutationId: ID
+  loraTraining: LoraTraining!
+}
+
+"""An image for the public slideshow. An object, so it can grow."""
+type LoraTrainerSlideshowImage {
+  """The DO Spaces copy when there is one."""
+  url: String!
+}
+
+"""
+A trained LoRA. The public sees completed, visible trainings; owners also see their own others.
+"""
+type LoraTraining implements Node {
+  arenaChannelTitle: String
+  arenaChannelUrl: String
+
+  """ISO-8601."""
+  createdAt: String!
+
+  """Owner only."""
+  hidden: Boolean
+  id: ID!
+
+  """Visible images generated with this LoRA, newest first."""
+  images(after: String, before: String, first: Int, last: Int): LoraTrainingImagesConnection!
+  loraWeightsUrl: String
+  status: LoraStatus!
+  steps: Int!
+
+  """Source images, preferring the DO Spaces mirrors when they exist."""
+  trainingImageUrls: [String!]!
+
+  """Owner only."""
+  trainingZipUrl: String
+  triggerWord: String!
+}
+
+type LoraTrainingImagesConnection {
+  edges: [LoraTrainingImagesConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type LoraTrainingImagesConnectionEdge {
+  cursor: String!
+  node: GeneratedImage!
+}
+
+type Mutation {
+  """Forget this account's Are.na user. True even when none was saved."""
+  arenaClearUser: Boolean!
+
+  """
+  Save this account's Are.na user. Fails with NOT_FOUND when Are.na doesn't know the slug.
+  """
+  arenaSetUser(input: ArenaSetUserInput!): ArenaSetUserPayload!
+  dmbkPhotosDeletePhoto(input: DmbkPhotosDeletePhotoInput!): DmbkPhotosDeletePhotoPayload!
+  dmbkPhotosFinalizePhoto(input: DmbkPhotosFinalizePhotoInput!): DmbkPhotosFinalizePhotoPayload!
+  dmbkPhotosReservePhotoUpload(input: DmbkPhotosReservePhotoUploadInput!): DmbkPhotosReservePhotoUploadPayload!
+  dmbkPhotosSetPhotoHidden(input: DmbkPhotosSetPhotoHiddenInput!): DmbkPhotosSetPhotoHiddenPayload!
+  dmbkPhotosUpdatePhoto(input: DmbkPhotosUpdatePhotoInput!): DmbkPhotosUpdatePhotoPayload!
+
+  """Mark a training completed. Already completed: changes nothing."""
+  loraTrainerCompleteTraining(input: LoraTrainerCompleteTrainingInput!): LoraTrainerCompleteTrainingPayload!
+  loraTrainerCreateTraining(input: LoraTrainerCreateTrainingInput!): LoraTrainerCreateTrainingPayload!
+
+  """Record images generated with one completed LoRA, all or nothing."""
+  loraTrainerRecordImages(input: LoraTrainerRecordImagesInput!): LoraTrainerRecordImagesPayload!
+  loraTrainerSetImageHidden(input: LoraTrainerSetImageHiddenInput!): LoraTrainerSetImageHiddenPayload!
+  loraTrainerSetTrainingAssets(input: LoraTrainerSetTrainingAssetsInput!): LoraTrainerSetTrainingAssetsPayload!
+  loraTrainerSetTrainingHidden(input: LoraTrainerSetTrainingHiddenInput!): LoraTrainerSetTrainingHiddenPayload!
+  signInWithGoogle(input: SignInWithGoogleInput!): SignInWithGooglePayload!
+
+  """
+  Revoke this request's session. False when there was no valid session to revoke.
+  """
+  signOut: Boolean!
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+"""
+A photo from the dmbk library. Non-admins only ever see ready, visible photos.
+"""
+type Photo implements Node {
+  """ISO-8601."""
+  createdAt: String!
+  displayUrl: String
+
+  """Admin only. Why finalization rejected this upload, when it did."""
+  failureReason: String
+
+  """
+  Null when this photo predates the grid variant — absent, not a dead URL.
+  """
+  gridUrl: String
+  height: Int
+
+  """Admin only; null otherwise."""
+  hidden: Boolean
+  id: ID!
+
+  """Normalized slugs."""
+  keywords: [String!]!
+
+  """Admin only; null otherwise."""
+  status: PhotoStatus
+  thumbUrl: String
+  title: String
+
+  """ISO-8601."""
+  updatedAt: String!
+
+  """Intrinsic pixel width, for reserving layout space."""
+  width: Int
+}
+
+"""Where a photo is in its lifecycle."""
+enum PhotoStatus {
+  FAILED
+  PENDING
+  READY
+}
+
+type Query {
+  _health: String!
+
+  """
+  A public or closed Are.na channel by slug, or null when it is private or does not exist.
+  """
+  arenaChannel(slug: String!): ArenaChannel
+
+  """Photos, newest first."""
+  dmbkPhotos(
+    after: String
+    before: String
+    first: Int
+
+    """Every keyword must be present. Normalized like stored keywords."""
+    keywords: [String!]
+    last: Int
+
+    """Admin only unless [READY] (the default)."""
+    states: [PhotoStatus!]
+
+    """Admin only unless VISIBLE (the default)."""
+    visibility: Visibility
+  ): QueryDmbkPhotosConnection!
+
+  """The photo keyword vocabulary, most used first."""
+  dmbkPhotosKeywords: [Keyword!]!
+
+  """The latest cached SoundCloud playlists snapshot."""
+  dmbkSoundPlaylists: SoundSnapshot
+
+  """
+  Up to `count` (1–20) distinct images in random order, from visible generated images and visible, completed trainings.
+  """
+  loraTrainerSlideshowImages(count: Int! = 10): [LoraTrainerSlideshowImage!]!
+
+  """Completed, visible LoRA trainings, newest first."""
+  loraTrainerTrainings(after: String, before: String, first: Int, last: Int): QueryLoraTrainerTrainingsConnection!
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+
+  """The signed-in wallet, or null when anonymous."""
+  viewer: Viewer
+}
+
+type QueryDmbkPhotosConnection {
+  edges: [QueryDmbkPhotosConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type QueryDmbkPhotosConnectionEdge {
+  cursor: String!
+  node: Photo!
+}
+
+type QueryLoraTrainerTrainingsConnection {
+  edges: [QueryLoraTrainerTrainingsConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type QueryLoraTrainerTrainingsConnectionEdge {
+  cursor: String!
+  node: LoraTraining!
+}
+
+input SignInWithGoogleInput {
+  clientMutationId: ID
+
+  """
+  A Google ID token (Google Identity Services `credential`) issued to this API's OAuth client.
+  """
+  idToken: String!
+}
+
+type SignInWithGooglePayload {
+  clientMutationId: ID
+
+  """Send as `Authorization: Bearer <token>`. Revoked by `signOut`."""
+  token: String!
+  viewer: Viewer!
+}
+
+type SoundPlaylist {
+  artworkUrl: String
+  createdAt: String!
+  description: String
+  title: String!
+  trackCount: Int!
+  tracks: [SoundTrack!]!
+  urn: String!
+  user: SoundUser!
+}
+
+type SoundSnapshot {
+  """When this snapshot was taken from SoundCloud. ISO-8601."""
+  fetchedAt: String!
+  playlists: [SoundPlaylist!]!
+}
+
+type SoundTrack {
+  artworkUrl: String
+  createdAt: String!
+  description: String
+  downloadable: Boolean!
+  durationMs: Int!
+  genre: String
+  permalinkUrl: String!
+  playbackCount: Int!
+  title: String!
+  urn: String!
+  user: SoundUser!
+}
+
+type SoundUser {
+  avatarUrl: String!
+  followersCount: Int!
+  permalinkUrl: String!
+  trackCount: Int!
+  urn: String!
+  username: String!
+}
+
+"""The signed-in account."""
+type Viewer {
+  """The Are.na user saved with `arenaSetUser`, or null."""
+  arena: ArenaProfile
+  email: String!
+
+  """The account's user id; LoRA records name it as their owner."""
+  id: String!
+
+  """May curate the photo library."""
+  isAdmin: Boolean!
+
+  """Images this account generated."""
+  loraTrainerImages(after: String, before: String, first: Int, last: Int, visibility: Visibility = ANY): ViewerLoraTrainerImagesConnection!
+
+  """
+  This account's own training for a fal.ai request id, at any status, or null.
+  """
+  loraTrainerTrainingByRequestId(requestId: String!): LoraTraining
+
+  """This account's own trainings, at any status."""
+  loraTrainerTrainings(after: String, before: String, first: Int, last: Int, visibility: Visibility = ANY): ViewerLoraTrainerTrainingsConnection!
+  name: String
+}
+
+type ViewerLoraTrainerImagesConnection {
+  edges: [ViewerLoraTrainerImagesConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ViewerLoraTrainerImagesConnectionEdge {
+  cursor: String!
+  node: GeneratedImage!
+}
+
+type ViewerLoraTrainerTrainingsConnection {
+  edges: [ViewerLoraTrainerTrainingsConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ViewerLoraTrainerTrainingsConnectionEdge {
+  cursor: String!
+  node: LoraTraining!
+}
+
+"""Which side of the hidden flag to return."""
+enum Visibility {
+  ANY
+  HIDDEN
+  VISIBLE
+}
+

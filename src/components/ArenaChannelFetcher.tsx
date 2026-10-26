@@ -12,6 +12,7 @@ import Sidebar from "./Sidebar";
 import TrainingProgress from "./TrainingProgress";
 import ImageSlideshow from "./ImageSlideshow";
 import { formSchema, type FormData } from "./types";
+import { useArenaChannelImages } from "./useArenaChannelImages";
 
 export type TrainingPhase =
   | "idle"
@@ -65,10 +66,7 @@ export default function ArenaChannelFetcher() {
     }
   }, [router.query.channel]);
 
-  const { data, isLoading, error } = trpc.arena.getChannelImages.useQuery(
-    { url: submittedUrl },
-    { enabled: !!submittedUrl },
-  );
+  const { data, isLoading, error } = useArenaChannelImages(submittedUrl);
 
   // --- Training polling queries ---
   const isPolling =
@@ -113,7 +111,9 @@ export default function ArenaChannelFetcher() {
 
   // --- Auto-save completed LoRA to gallery ---
   const hasSavedRef = useRef(false);
-  const completeLoraM = trpc.lora.complete.useMutation();
+  const completeLoraM = trpc.fal.completeTraining.useMutation({
+    onError: (error) => console.error("Failed to save the completed LoRA:", error),
+  });
 
   useEffect(() => {
     if (
