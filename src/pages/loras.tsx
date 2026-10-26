@@ -1,10 +1,9 @@
-import { useRouter } from "next/router";
 import { View } from "reshaped";
 import LoraGallery from "@/components/LoraGallery";
+import FeatureBoundary from "@/components/FeatureBoundary";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
 export default function LorasPage() {
-  const router = useRouter();
   return (
     <View
       height="100vh"
@@ -17,7 +16,9 @@ export default function LorasPage() {
       }}
     >
       <View padding={2} attributes={{ style: { flex: 1, overflowY: "auto" } }}>
-        <LoraGallery />
+        <FeatureBoundary errorTitle="Failed to load gallery">
+          <LoraGallery />
+        </FeatureBoundary>
       </View>
     </View>
   );

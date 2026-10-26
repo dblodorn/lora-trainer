@@ -1,16 +1,13 @@
 import { router } from "./trpc";
 import { falRouter } from "./features/fal";
-import { arenaRouter } from "./features/arena";
-import { loraRouter } from "./features/lora";
-import { generateRouter } from "./features/generate";
-import { slideshowRouter } from "./features/slideshow";
 
+/*
+ * Only the fal.ai work lives here. Every LoRA record, the slideshow and
+ * Are.na come from the dmbk API, through Relay and /api/graphql in the
+ * browser, or through ./lora-api from these procedures.
+ */
 export const appRouter = router({
   fal: falRouter,
-  arena: arenaRouter,
-  lora: loraRouter,
-  generate: generateRouter,
-  slideshow: slideshowRouter,
 });
 
 export type AppRouter = typeof appRouter;

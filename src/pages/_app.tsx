@@ -6,12 +6,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { trpc } from "@/utils/trpc";
 import { useState } from "react";
+import { RelayEnvironmentProvider } from "react-relay";
+import { createRelayEnvironment } from "@/lib/relay/environment";
 import { Reshaped } from "reshaped";
 import AuthModalProvider from "@/components/AuthModalProvider";
 import VerticalNav from "@/components/VerticalNav";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [queryClient] = useState(() => new QueryClient());
+  // Relay for the dmbk API's data; tRPC only for this app's fal.ai procedures.
+  const [relayEnvironment] = useState(createRelayEnvironment);
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
@@ -23,6 +27,7 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 
   return (
+    <RelayEnvironmentProvider environment={relayEnvironment}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <Reshaped theme="lora-trainer">
@@ -33,5 +38,6 @@ export default function App({ Component, pageProps }: AppProps) {
           </Reshaped>
         </QueryClientProvider>
       </trpc.Provider>
+    </RelayEnvironmentProvider>
   );
 }

@@ -1,0 +1,15 @@
+{
+  "src": "./src",
+  "schema": "./schemas/dmbk-graphql-api.graphql",
+  "language": "typescript",
+  "eagerEsModules": true,
+  "excludes": [
+    "**/node_modules/**",
+    "**/__generated__/**",
+    "**/src/server/**"
+  ],
+  "persistConfig": {
+    "file": "./src/server/graphql/persisted-operations.json",
+    "algorithm": "SHA256"
+  }
+}

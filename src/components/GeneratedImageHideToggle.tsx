@@ -1,45 +1,41 @@
-import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { trpc } from "@/utils/trpc";
+import { graphql, useMutation } from "react-relay";
+import type { GeneratedImageHideToggleMutation } from "./__generated__/GeneratedImageHideToggleMutation.graphql";
 
 interface GeneratedImageHideToggleProps {
+  /** The image's global ID. */
   id: string;
   hidden: boolean;
+  /**
+   * Connections the image leaves once toggled: the list it is shown in is
+   * filtered by visibility, so hiding takes it off a LoRA's public list and
+   * unhiding takes it off the hidden list.
+   */
+  connections: string[];
 }
 
-export default function GeneratedImageHideToggle({ id, hidden }: GeneratedImageHideToggleProps) {
-  const [justToggled, setJustToggled] = useState(false);
-  const utils = trpc.useUtils();
-
-  const hideMutation = trpc.generate.hideImage.useMutation({
-    onSuccess: () => {
-      utils.generate.listByLora.invalidate();
-      utils.generate.listHiddenImages.invalidate();
-      setJustToggled(false);
-    },
-  });
-
-  const unhideMutation = trpc.generate.unhideImage.useMutation({
-    onSuccess: () => {
-      utils.generate.listByLora.invalidate();
-      utils.generate.listHiddenImages.invalidate();
-      setJustToggled(false);
-    },
-  });
-
-  const handleToggle = () => {
-    setJustToggled(true);
-    if (hidden) {
-      unhideMutation.mutate({ id });
-    } else {
-      hideMutation.mutate({ id });
+export default function GeneratedImageHideToggle({ id, hidden, connections }: GeneratedImageHideToggleProps) {
+  const [commit, isInFlight] = useMutation<GeneratedImageHideToggleMutation>(graphql`
+    mutation GeneratedImageHideToggleMutation($input: LoraTrainerSetImageHiddenInput!, $connections: [ID!]!) {
+      loraTrainerSetImageHidden(input: $input) {
+        generatedImage {
+          id
+          hidden
+          removedId: id @deleteEdge(connections: $connections)
+        }
+      }
     }
-  };
+  `);
 
   return (
     <button
-      onClick={handleToggle}
-      disabled={justToggled && (hideMutation.isPending || unhideMutation.isPending)}
+      onClick={() =>
+        commit({
+          variables: { input: { id, hidden: !hidden }, connections },
+          onError: (error) => console.error("Failed to change the image's visibility:", error),
+        })
+      }
+      disabled={isInFlight}
       style={{
         background: "none",
         border: "none",

@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# generated Relay artifacts (npm run relay): this app's operations and the
+# persisted-operation allowlist the /api/graphql proxy reads
+__generated__/
+/src/server/graphql/persisted-operations.json

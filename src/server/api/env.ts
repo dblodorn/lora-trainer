@@ -9,7 +9,6 @@ config(); // default .env file
 // so that routes that don't need them can still work.
 const envSchema = z.object({
   FAL_AI_API_KEY: z.string().optional(),
-  MONGODB_URI: z.string().optional(),
   DO_SPACES_ENDPOINT: z.string().optional(),
   DO_SPACES_REGION: z.string().optional(),
   DO_SPACES_KEY: z.string().optional(),
@@ -25,7 +24,6 @@ export const env = envResult.success
   ? envResult.data
   : {
       FAL_AI_API_KEY: undefined,
-      MONGODB_URI: undefined,
       DO_SPACES_ENDPOINT: undefined,
       DO_SPACES_REGION: undefined,
       DO_SPACES_KEY: undefined,

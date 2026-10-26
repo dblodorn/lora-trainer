@@ -1,50 +1,41 @@
-import { useState } from "react";
 import { Button } from "reshaped";
 import { Eye, EyeOff } from "lucide-react";
-import { trpc } from "@/utils/trpc";
+import { graphql, useMutation } from "react-relay";
+import type { LoraHideToggleMutation } from "./__generated__/LoraHideToggleMutation.graphql";
 
 interface LoraHideToggleProps {
+  /** The training's global ID. */
   id: string;
   hidden: boolean;
 }
 
+/*
+ * The payload carries `hidden`, so the store updates the training in place.
+ * The gallery and hidden lists refetch when next shown (store-and-network).
+ */
 export default function LoraHideToggle({ id, hidden }: LoraHideToggleProps) {
-  const [justToggled, setJustToggled] = useState(false);
-  const utils = trpc.useUtils();
-
-  const hideMutation = trpc.lora.hide.useMutation({
-    onSuccess: () => {
-      utils.lora.getById.invalidate({ id });
-      utils.lora.list.invalidate();
-      utils.lora.listHidden.invalidate();
-      setJustToggled(false);
-    },
-  });
-
-  const unhideMutation = trpc.lora.unhide.useMutation({
-    onSuccess: () => {
-      utils.lora.getById.invalidate({ id });
-      utils.lora.list.invalidate();
-      utils.lora.listHidden.invalidate();
-      setJustToggled(false);
-    },
-  });
-
-  const handleToggle = () => {
-    setJustToggled(true);
-    if (hidden) {
-      unhideMutation.mutate({ id });
-    } else {
-      hideMutation.mutate({ id });
+  const [commit, isInFlight] = useMutation<LoraHideToggleMutation>(graphql`
+    mutation LoraHideToggleMutation($input: LoraTrainerSetTrainingHiddenInput!) {
+      loraTrainerSetTrainingHidden(input: $input) {
+        loraTraining {
+          id
+          hidden
+        }
+      }
     }
-  };
+  `);
 
   return (
     <Button
       variant="ghost"
       size="small"
-      onClick={handleToggle}
-      loading={justToggled && (hideMutation.isPending || unhideMutation.isPending)}
+      onClick={() =>
+        commit({
+          variables: { input: { id, hidden: !hidden } },
+          onError: (error) => console.error("Failed to change the LoRA's visibility:", error),
+        })
+      }
+      loading={isInFlight}
     >
       {hidden ? <EyeOff size={16} /> : <Eye size={16} />}
     </Button>

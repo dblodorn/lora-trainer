@@ -20,8 +20,11 @@ import {
 interface GenerateModalProps {
   active: boolean;
   onClose: () => void;
+  /** The raw training id. */
   loraId: string;
   triggerWord: string;
+  /** Called once a batch is recorded, so the LoRA's image list can refetch. */
+  onGenerated?: () => void;
 }
 
 export default function GenerateModal({
@@ -29,10 +32,11 @@ export default function GenerateModal({
   onClose,
   loraId,
   triggerWord,
+  onGenerated,
 }: GenerateModalProps) {
   const [prompt, setPrompt] = useState("");
   const [generatedImages, setGeneratedImages] = useState<
-    { id: string; imageUrl: string; cdnUrl: string | null; prompt: string; createdAt: string; loraScaleName?: string | null }[]
+    { id: string; url: string; prompt: string; createdAt: string; loraScaleName?: string | null }[]
   >([]);
   const [nsfwWarning, setNsfwWarning] = useState(false);
   const [loraScale, setLoraScale] = useState<LoraScale>(DEFAULT_LORA_SCALE);
@@ -42,23 +46,20 @@ export default function GenerateModal({
   const { viewer } = useSession();
   const { openAuthModal } = useAuthModal();
 
-  const utils = trpc.useUtils();
-
-  const generateMutation = trpc.generate.images.useMutation({
+  const generateMutation = trpc.fal.generateImages.useMutation({
     onSuccess: (data) => {
       const now = new Date().toISOString();
       setGeneratedImages(
         data.images.map((img) => ({
           id: img.id,
-          imageUrl: img.imageUrl,
-          cdnUrl: img.cdnUrl,
+          url: img.cdnUrl ?? img.imageUrl,
           prompt: data.prompt,
           createdAt: now,
           loraScaleName: img.loraScaleName ?? null,
         })),
       );
       setNsfwWarning(data.nsfwFiltered);
-      utils.generate.listByLora.invalidate({ loraTrainingId: loraId });
+      if (data.recorded) onGenerated?.();
     },
   });
 

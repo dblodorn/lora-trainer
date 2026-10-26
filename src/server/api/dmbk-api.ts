@@ -10,7 +10,7 @@ import { callApi, SessionServiceError } from "@/server/auth/session";
 const CODES: Record<string, TRPCError["code"]> = {
   NOT_FOUND: "NOT_FOUND",
   BAD_USER_INPUT: "BAD_REQUEST",
-  FORBIDDEN: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
   UNAUTHENTICATED: "UNAUTHORIZED",
   RATE_LIMITED: "TOO_MANY_REQUESTS",
 };

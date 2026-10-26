@@ -4,6 +4,7 @@ import { useSession } from "@/lib/session";
 import ImageSlideshow from "@/components/ImageSlideshow";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import ArenaUsername from "@/components/ArenaUsername";
+import FeatureBoundary from "@/components/FeatureBoundary";
 import AuthLeftNav from "@/components/AuthLeftNav";
 import { NAV_WIDTH } from "@/components/VerticalNav";
 
@@ -62,7 +63,9 @@ export default function AuthPage() {
               {isSignedIn && (
                 <>
                   <Divider />
-                  <ArenaUsername />
+                  <FeatureBoundary errorTitle="Failed to load your Are.na user" fallback={null}>
+                    <ArenaUsername />
+                  </FeatureBoundary>
                 </>
               )}
             </View>
