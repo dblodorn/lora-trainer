@@ -62,12 +62,13 @@ export default function TrainingProgress({
   const [expanded, setExpanded] = useState(false);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-expand when training starts (transitions from queued to training)
-  useEffect(() => {
-    if (phase === "training") {
-      setExpanded(true);
-    }
-  }, [phase]);
+  // Auto-expand when training starts (transitions from queued to training).
+  // Adjusted during render rather than in an effect, so there's no extra pass.
+  const [seenPhase, setSeenPhase] = useState(phase);
+  if (phase !== seenPhase) {
+    setSeenPhase(phase);
+    if (phase === "training") setExpanded(true);
+  }
 
   // Auto-scroll the logs container internally (not the window)
   useEffect(() => {

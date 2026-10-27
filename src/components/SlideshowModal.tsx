@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, Button, Modal, Badge } from "reshaped";
+import { Text, Button, Modal, Badge } from "reshaped";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface SlideshowImage {
@@ -48,13 +48,16 @@ export default function SlideshowModal({
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [direction, setDirection] = useState(1);
 
-  // Sync index when modal opens
-  useEffect(() => {
+  // Jump to startIndex whenever the modal opens or is pointed elsewhere.
+  // Adjusted during render rather than in an effect, so there's no extra pass.
+  const [synced, setSynced] = useState({ active, startIndex });
+  if (synced.active !== active || synced.startIndex !== startIndex) {
+    setSynced({ active, startIndex });
     if (active) {
       setCurrentIndex(startIndex);
       setDirection(1);
     }
-  }, [active, startIndex]);
+  }
 
   const goBack = useCallback(() => {
     setDirection(-1);

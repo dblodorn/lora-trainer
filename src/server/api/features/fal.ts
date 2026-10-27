@@ -498,10 +498,9 @@ export const falRouter = router({
             "logs" in status && Array.isArray(status.logs)
               ? (status.logs as { timestamp: string; message: string }[])
               : [],
-          ...(status.status === "IN_QUEUE" &&
-            "queue_position" in status && {
-              queuePosition: (status as any).queue_position as number,
-            }),
+          ...(status.status === "IN_QUEUE" && {
+            queuePosition: status.queue_position,
+          }),
         };
       } catch (error) {
         console.error("Training status error:", error);
