@@ -1,5 +1,5 @@
 import { View } from "reshaped";
-import { type Control } from "react-hook-form";
+import { type Control, type UseFormSetValue } from "react-hook-form";
 import TrainingSettings from "./TrainingSettings";
 import StatusAlerts from "./StatusAlerts";
 import AuthGuard from "./AuthGuard";
@@ -16,6 +16,7 @@ interface DownloadMutationState {
 interface SidebarProps {
   selectedImages: string[];
   control: Control<FormData>;
+  setValue: UseFormSetValue<FormData>;
   onTrain: () => void;
   onDownload: () => void;
   downloadMutation: DownloadMutationState;
@@ -26,6 +27,7 @@ interface SidebarProps {
 export default function Sidebar({
   selectedImages,
   control,
+  setValue,
   onTrain,
   onDownload,
   downloadMutation,
@@ -40,6 +42,7 @@ export default function Sidebar({
         <AuthGuard>
           <TrainingSettings
             control={control}
+            setValue={setValue}
             onTrain={onTrain}
             onDownload={onDownload}
             isTraining={isSubmitting || isTrainingActive}

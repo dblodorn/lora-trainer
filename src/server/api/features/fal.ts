@@ -10,6 +10,7 @@ import dns from "node:dns";
 import net from "node:net";
 import { loraScaleSchema, DEFAULT_LORA_SCALE, getLoraScaleLabel } from "@/lib/lora-scale";
 import { imageDimensionsSchema } from "@/lib/image-dimensions";
+import { DEFAULT_LORA_MODEL, LORA_MODELS, loraModelKeySchema, modelForTrainer } from "@/lib/lora-models";
 import * as loraApi from "../lora-api";
 import { uploadToSpaces, mirrorUrlToSpaces } from "./storage";
 
@@ -299,6 +300,12 @@ function isSpacesCopy(url: string): boolean {
 
 const IMAGES_PER_BATCH = 4;
 
+/** A queued training: its fal.ai request id and the model it was submitted to. */
+const trainingRequestSchema = z.object({
+  requestId: z.string(),
+  model: loraModelKeySchema,
+});
+
 function generateImageId(): string {
   return crypto.randomBytes(16).toString("hex");
 }
@@ -373,11 +380,14 @@ export const falRouter = router({
           .max(20),
         triggerWord: z.string().min(1).max(50),
         steps: z.number().min(100).max(2000).default(1000),
+        model: loraModelKeySchema.default(DEFAULT_LORA_MODEL),
         arenaChannelUrl: z.string().url().optional(),
         arenaChannelTitle: z.string().max(200).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const model = LORA_MODELS[input.model];
+
       // ── Training execution ────────────────────────────────────────
       try {
         ensureFalConfigured();
@@ -402,18 +412,11 @@ export const falRouter = router({
         console.log(`Zip uploaded to: ${zipUrl}, submitting to queue...`);
 
         // Submit to queue instead of blocking with subscribe
-        const { request_id } = await fal.queue.submit(
-          "fal-ai/flux-lora-fast-training",
-          {
-            input: {
-              images_data_url: zipUrl,
-              trigger_word: input.triggerWord,
-              steps: input.steps,
-            },
-          },
-        );
+        const { request_id } = await fal.queue.submit(model.trainer, {
+          input: model.trainingInput({ zipUrl, triggerWord: input.triggerWord, steps: input.steps }),
+        });
 
-        console.log(`Training submitted to queue: ${request_id}`);
+        console.log(`Training submitted to ${model.trainer} queue: ${request_id}`);
 
         // Record the pending training at the API so it is not lost if the
         // client disconnects. A failure is logged, not raised: the job is
@@ -425,6 +428,7 @@ export const falRouter = router({
             triggerWord: input.triggerWord,
             steps: input.steps,
             imageUrls: input.imageUrls,
+            trainerModel: model.trainer,
             // The API takes https only; are.na serves both.
             ...(input.arenaChannelUrl
               ? { arenaChannelUrl: input.arenaChannelUrl.replace(/^http:\/\//, "https://") }
@@ -479,18 +483,15 @@ export const falRouter = router({
     }),
 
   getTrainingStatus: protectedProcedure
-    .input(z.object({ requestId: z.string() }))
+    .input(trainingRequestSchema)
     .query(async ({ input }) => {
       try {
         ensureFalConfigured();
 
-        const status = await fal.queue.status(
-          "fal-ai/flux-lora-fast-training",
-          {
-            requestId: input.requestId,
-            logs: true,
-          },
-        );
+        const status = await fal.queue.status(LORA_MODELS[input.model].trainer, {
+          requestId: input.requestId,
+          logs: true,
+        });
 
         return {
           status: status.status,
@@ -513,12 +514,12 @@ export const falRouter = router({
     }),
 
   cancelTraining: protectedProcedure
-    .input(z.object({ requestId: z.string() }))
+    .input(trainingRequestSchema)
     .mutation(async ({ input }) => {
       try {
         ensureFalConfigured();
 
-        await fal.queue.cancel("fal-ai/flux-lora-fast-training", {
+        await fal.queue.cancel(LORA_MODELS[input.model].trainer, {
           requestId: input.requestId,
         });
 
@@ -535,21 +536,26 @@ export const falRouter = router({
       }
     }),
 
+  /** The finished training's weights URL, read from wherever its trainer puts it. */
   getTrainingResult: protectedProcedure
-    .input(z.object({ requestId: z.string() }))
+    .input(trainingRequestSchema)
     .query(async ({ input }) => {
+      const model = LORA_MODELS[input.model];
       try {
         ensureFalConfigured();
 
-        const result = await fal.queue.result(
-          "fal-ai/flux-lora-fast-training",
-          {
-            requestId: input.requestId,
-          },
-        );
+        const result = await fal.queue.result(model.trainer, {
+          requestId: input.requestId,
+        });
+
+        const loraWeightsUrl = model.weightsUrl(result.data);
+        if (!loraWeightsUrl) {
+          console.error(`No weights URL in the ${model.trainer} result:`, result.data);
+          throw new Error("The training result has no LoRA weights URL");
+        }
 
         return {
-          data: result.data as Record<string, unknown>,
+          loraWeightsUrl,
           requestId: result.requestId,
         };
       } catch (error) {
@@ -638,6 +644,14 @@ export const falRouter = router({
         });
       }
 
+      const model = modelForTrainer(lora.trainerModel);
+      if (!model) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `This LoRA's base model (${lora.trainerModel}) isn't supported here.`,
+        });
+      }
+
       const fullPrompt = `${input.prompt} in the style of ${lora.triggerWord}`;
 
       ensureFalConfigured();
@@ -649,13 +663,12 @@ export const falRouter = router({
       };
 
       try {
-        const response = await fal.subscribe("fal-ai/flux-lora", {
+        const response = await fal.subscribe(model.generator, {
           input: {
             prompt: fullPrompt,
             loras: [{ path: lora.loraWeightsUrl, scale: parseFloat(input.loraScale) }],
             image_size: { width: input.imageWidth, height: input.imageHeight },
-            num_inference_steps: 28,
-            guidance_scale: 3.5,
+            ...model.generationInput,
             num_images: IMAGES_PER_BATCH,
             enable_safety_checker: true,
             output_format: "jpeg",
@@ -717,7 +730,7 @@ export const falRouter = router({
       let globalIds: string[] | null = null;
       for (let attempt = 1; attempt <= 2 && !globalIds; attempt++) {
         try {
-          globalIds = await loraApi.recordImages(ctx.sessionToken, lora.id, images);
+          globalIds = await loraApi.recordImages(ctx.sessionToken, lora.id, model.generator, images);
         } catch (err) {
           console.error(`Failed to record generated images (attempt ${attempt}/2):`, err);
         }
@@ -725,7 +738,7 @@ export const falRouter = router({
       if (!globalIds) {
         console.error(
           "[generateImages] Unrecorded images, replay with loraTrainerRecordImages:",
-          JSON.stringify({ loraTrainingId: lora.id, images }),
+          JSON.stringify({ loraTrainingId: lora.id, generatorModel: model.generator, images }),
         );
       }
 

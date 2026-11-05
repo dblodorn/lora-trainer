@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { loraModelKeySchema } from "@/lib/lora-models";
 
 const arenaUrlRegex = /^https?:\/\/(www\.)?are\.na\/[^/]+\/[^/]+\/?$/;
 
@@ -13,6 +14,7 @@ export const formSchema = z.object({
   selectedImages: z.array(z.string()),
   triggerWord: z.string(),
   trainingSteps: z.number(),
+  model: loraModelKeySchema,
 });
 
 export type FormData = z.infer<typeof formSchema>;

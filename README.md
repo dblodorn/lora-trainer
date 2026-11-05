@@ -4,8 +4,8 @@ Next.js Pages Router app for selecting [Are.na](https://are.na) images, training
 
 ## What it does
 
-- **Train** (`/`): paste an Are.na channel URL, or pick one of your channels once your Are.na username is saved on `/auth`. Then pick images, set a trigger word and step count, and train a FLUX LoRA (`fal-ai/flux-lora-fast-training`). Progress is polled from the FAL queue.
-- **Loras** (`/loras`, `/loras/[id]`): the gallery of completed LoRAs. Each detail page shows the training images, the weights URL, and images generated with it. Signed in, you can generate 4 images at a time (`fal-ai/flux-lora`) at a chosen LoRA scale and size.
+- **Train** (`/`): paste an Are.na channel URL, or pick one of your channels once your Are.na username is saved on `/auth`. Then pick images, set a trigger word, pick a base model (FLUX.1 dev by default, or Z-Image Turbo, FLUX.2 [klein] 9B, Qwen Image 2512 or Krea 2) and a step count, and train a LoRA on that model's fal.ai trainer. Progress is polled from the FAL queue; trainers that send no logs show an elapsed timer and the model's usual training time instead.
+- **Loras** (`/loras`, `/loras/[id]`): the gallery of completed LoRAs. Each detail page shows the training images, the weights URL, and images generated with it. Each LoRA shows its base model. Signed in, you can generate 4 images at a time, with the generator that matches the LoRA's base model, at a chosen LoRA scale and size.
 - **Hide**: the owner can hide a LoRA or a generated image from the public pages. Hidden ones are listed at `/hidden` and `/hidden-generations`.
 - **Are.na**: channels are read through the dmbk API (`arenaChannel`, `viewer.arena`), which uses Are.na's v3 API without credentials, so only public and closed channels can be used. The picker lists your own channels and your groups' channels, up to 100 images per channel.
 - **Storage**: training images, the training zip, LoRA weights and generated images are mirrored to DigitalOcean Spaces. A generated image whose mirror failed keeps its fal.media URL.

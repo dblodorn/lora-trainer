@@ -23,9 +23,11 @@ export interface LoraRecord {
   loraWeightsUrl: string | null;
   /** Spaces mirrors when the training has them, otherwise the originals. */
   trainingImageUrls: string[];
+  /** The fal.ai trainer endpoint id. Records from before models were tracked read as FLUX.1's. */
+  trainerModel: string;
 }
 
-const LORA_FIELDS = "id status triggerWord loraWeightsUrl trainingImageUrls";
+const LORA_FIELDS = "id status triggerWord loraWeightsUrl trainingImageUrls trainerModel";
 
 type RawLora = Omit<LoraRecord, "id"> & { id: string };
 const toRecord = (lora: RawLora): LoraRecord => ({ ...lora, id: fromTrainingGlobalId(lora.id) });
@@ -37,6 +39,8 @@ export async function createTraining(
     triggerWord: string;
     steps: number;
     imageUrls: string[];
+    /** The fal.ai trainer endpoint id it was submitted to. */
+    trainerModel: string;
     arenaChannelUrl?: string;
     arenaChannelTitle?: string;
   },
@@ -123,13 +127,21 @@ export interface RecordedImageInput {
   genHeight: number;
 }
 
-/** Record a batch of generated images, all or nothing. Returns their global IDs, in input order. */
-export async function recordImages(token: string, loraId: string, images: RecordedImageInput[]): Promise<string[]> {
+/**
+ * Record a batch of generated images, all or nothing, with the fal.ai generator
+ * endpoint id that made them. Returns their global IDs, in input order.
+ */
+export async function recordImages(
+  token: string,
+  loraId: string,
+  generatorModel: string,
+  images: RecordedImageInput[],
+): Promise<string[]> {
   const data = await dmbkApi<{ loraTrainerRecordImages: { generatedImages: { id: string }[] } }>(
     `mutation ($input: LoraTrainerRecordImagesInput!) {
       loraTrainerRecordImages(input: $input) { generatedImages { id } }
     }`,
-    { input: { loraTrainingId: toTrainingGlobalId(loraId), images } },
+    { input: { loraTrainingId: toTrainingGlobalId(loraId), generatorModel, images } },
     token,
   );
   return data.loraTrainerRecordImages.generatedImages.map((img) => img.id);
