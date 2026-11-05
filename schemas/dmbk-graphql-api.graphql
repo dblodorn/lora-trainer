@@ -220,6 +220,11 @@ type DmbkPhotosUpdatePhotoPayload {
 type GeneratedImage implements Node {
   """ISO-8601."""
   createdAt: String!
+
+  """
+  The fal.ai endpoint id it was generated with. Records from before this was stored read as fal-ai/flux-lora.
+  """
+  generatorModel: String!
   height: Int
 
   """Owner only."""
@@ -285,6 +290,11 @@ input LoraTrainerCreateTrainingInput {
   """100–2000."""
   steps: Int!
 
+  """
+  The fal.ai endpoint id it was submitted to. Omitted: fal-ai/flux-lora-fast-training.
+  """
+  trainerModel: String
+
   """1–50 characters."""
   triggerWord: String!
 }
@@ -321,6 +331,11 @@ input LoraTrainerRecordImagesImageInput {
 
 input LoraTrainerRecordImagesInput {
   clientMutationId: ID
+
+  """
+  The fal.ai endpoint id that generated the batch. Omitted: fal-ai/flux-lora.
+  """
+  generatorModel: String
 
   """1–8 images."""
   images: [LoraTrainerRecordImagesImageInput!]!
@@ -400,6 +415,11 @@ type LoraTraining implements Node {
   loraWeightsUrl: String
   status: LoraStatus!
   steps: Int!
+
+  """
+  The fal.ai endpoint id it was trained with. Records from before this was stored read as the FLUX trainer.
+  """
+  trainerModel: String!
 
   """Source images, preferring the DO Spaces mirrors when they exist."""
   trainingImageUrls: [String!]!
