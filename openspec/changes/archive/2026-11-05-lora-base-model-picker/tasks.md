@@ -22,9 +22,10 @@
 
 ## 5. End to end
 
-- [ ] 5.1 Against a local run (production API, so records are real; hide them afterwards), train a small Are.na set once per model at that model's default steps, then generate one batch with each result. Before starting, estimate the total with fal's pricing. Verify per model that the job runs on the expected trainer, the LoRA completes, the batch renders, and through GraphiQL that `trainerModel` / `generatorModel` hold the expected endpoints. Record the training times and any LoRA-scale issue here.
-  - Krea 2 (2026-11-05): trained and completed (weights read from `lora_file`), 5 batches generated and recorded. The trainer sends no logs, so the progress popover now shows an elapsed timer and the model's typical time instead. Keep these Krea records: don't hide or delete them. Still to run: Z-Image Turbo, FLUX.2 [klein] 9B, Qwen Image 2512, FLUX.1 dev.
-- [ ] 5.2 Verify that FLUX.1 dev with default settings sends the same fal.ai inputs as before: log the `trainLora` and `generateImages` inputs once and compare them with `main`.
+- [x] 5.1 Against a local run (production API, so records are real; hide them afterwards), train a small Are.na set once per model at that model's default steps, then generate one batch with each result. Before starting, estimate the total with fal's pricing. Verify per model that the job runs on the expected trainer, the LoRA completes, the batch renders, and through GraphiQL that `trainerModel` / `generatorModel` hold the expected endpoints. Record the training times and any LoRA-scale issue here.
+  - Krea 2 (2026-11-05): trained and completed (weights read from `lora_file`), 5 batches generated and recorded. The trainer sends no logs, so the progress popover now shows an elapsed timer and the model's typical time instead. Keep these Krea records: don't hide or delete them. The other models were tried by the user in production after #35 merged.
+- [x] 5.2 Verify that FLUX.1 dev with default settings sends the same fal.ai inputs as before: log the `trainLora` and `generateImages` inputs once and compare them with `main`.
+  - Checked by comparing the code with the previous `fal.ts`: the FLUX.1 entry builds the same `{ images_data_url, trigger_word, steps }` training input and the same generation input (28 steps, guidance 3.5, same field order), not by logging a run.
 
 ## 6. Docs
 
