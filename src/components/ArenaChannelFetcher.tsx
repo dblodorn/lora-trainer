@@ -12,6 +12,7 @@ import Sidebar from "./Sidebar";
 import TrainingProgress from "./TrainingProgress";
 import ImageSlideshow from "./ImageSlideshow";
 import { formSchema, type FormData } from "./types";
+import { DEFAULT_LORA_MODEL, LORA_MODELS, type LoraModelKey } from "@/lib/lora-models";
 import { useArenaChannelImages } from "./useArenaChannelImages";
 
 export type TrainingPhase =
@@ -37,6 +38,9 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
   const [trainingRequestId, setTrainingRequestId] = useState<string | null>(
     null,
   );
+  // The model the running training was submitted with: status, result and
+  // cancel all go to that model's trainer.
+  const [trainingModel, setTrainingModel] = useState<LoraModelKey>(DEFAULT_LORA_MODEL);
   const [trainingLoraId, setTrainingLoraId] = useState<string | null>(null);
   const [trainingPhase, setTrainingPhase] = useState<TrainingPhase>("idle");
   const [trainingError, setTrainingError] = useState<string | null>(null);
@@ -49,6 +53,7 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
       selectedImages: [],
       triggerWord: "",
       trainingSteps: 1000,
+      model: DEFAULT_LORA_MODEL,
     },
   });
 
@@ -64,7 +69,7 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
     trainingPhase !== "idle";
 
   const trainingStatus = trpc.fal.getTrainingStatus.useQuery(
-    { requestId: trainingRequestId! },
+    { requestId: trainingRequestId!, model: trainingModel },
     {
       enabled: isPolling,
       refetchInterval: isPolling ? 2000 : false,
@@ -89,7 +94,7 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
   }
 
   const trainingResult = trpc.fal.getTrainingResult.useQuery(
-    { requestId: trainingRequestId! },
+    { requestId: trainingRequestId!, model: trainingModel },
     { enabled: trainingPhase === "completed" && !!trainingRequestId },
   );
 
@@ -102,31 +107,23 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
   useEffect(() => {
     if (
       trainingPhase === "completed" &&
-      trainingResult.data?.data &&
+      trainingResult.data &&
       trainingRequestId &&
       !hasSavedRef.current
     ) {
-      const loraFile = trainingResult.data.data.diffusers_lora_file as
-        | { url?: string }
-        | undefined;
-      const configFile = trainingResult.data.data.config_file as
-        | { url?: string }
-        | undefined;
-      const loraUrl = loraFile?.url ?? configFile?.url;
-      if (loraUrl) {
-        hasSavedRef.current = true;
-        completeLora({
-          requestId: trainingRequestId,
-          loraWeightsUrl: loraUrl,
-        });
-      }
+      hasSavedRef.current = true;
+      completeLora({
+        requestId: trainingRequestId,
+        loraWeightsUrl: trainingResult.data.loraWeightsUrl,
+      });
     }
   }, [trainingPhase, trainingResult.data, trainingRequestId, completeLora]);
 
   // --- Mutations ---
   const trainLoraMutation = trpc.fal.trainLora.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setTrainingRequestId(data.requestId);
+      setTrainingModel(variables.model ?? DEFAULT_LORA_MODEL);
       setTrainingLoraId(data.loraId ?? null);
       setTrainingPhase("queued");
     },
@@ -207,6 +204,7 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
         imageUrls: formData.selectedImages,
         triggerWord: formData.triggerWord,
         steps: formData.trainingSteps,
+        model: formData.model,
         ...(submittedUrl ? { arenaChannelUrl: submittedUrl } : {}),
         ...(data?.channel.title ? { arenaChannelTitle: data.channel.title } : {}),
       });
@@ -223,12 +221,12 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
 
   const handleCancelTraining = useCallback(() => {
     if (trainingRequestId) {
-      cancelTrainingMutation.mutate({ requestId: trainingRequestId });
+      cancelTrainingMutation.mutate({ requestId: trainingRequestId, model: trainingModel });
     } else {
       // No request ID yet (still in preparing phase) — just reset locally
       handleResetTraining();
     }
-  }, [trainingRequestId, cancelTrainingMutation, handleResetTraining]);
+  }, [trainingRequestId, trainingModel, cancelTrainingMutation, handleResetTraining]);
 
   const handleDownloadZip = async () => {
     const formData = getValues();
@@ -379,6 +377,7 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
               <Sidebar
                 selectedImages={selectedImages}
                 control={control}
+                setValue={setValue}
                 onTrain={handleTrainLora}
                 onDownload={handleDownloadZip}
                 downloadMutation={downloadZipMutation}
@@ -393,7 +392,9 @@ export default function ArenaChannelFetcher({ channel }: ArenaChannelFetcherProp
       <TrainingProgress
         phase={trainingPhase}
         logs={trainingStatus.data?.logs ?? []}
-        result={trainingResult.data?.data ?? null}
+        loraUrl={trainingResult.data?.loraWeightsUrl ?? null}
+        resultError={trainingResult.error?.message ?? null}
+        typicalMinutes={LORA_MODELS[trainingModel].typicalTrainingMinutes}
         error={trainingError}
         queuePosition={trainingStatus.data?.queuePosition ?? undefined}
         loraId={trainingLoraId}

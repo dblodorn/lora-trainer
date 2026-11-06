@@ -1,10 +1,11 @@
-import { View, Text, Button } from "reshaped";
+import { View, Text, Button, Badge } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import { graphql, useFragment } from "react-relay";
 import { fromTrainingGlobalId } from "@/lib/relay/ids";
 import type { LoraRow_training$key } from "./__generated__/LoraRow_training.graphql";
 import ArenaChannelBadge from "./ArenaChannelBadge";
+import { loraModelLabel } from "@/lib/lora-models";
 
 interface LoraRowProps {
   training: LoraRow_training$key;
@@ -30,11 +31,12 @@ export default function LoraRow({ training }: LoraRowProps) {
         trainingImageUrls
         arenaChannelUrl
         arenaChannelTitle
+        trainerModel
       }
     `,
     training,
   );
-  const { triggerWord, steps, createdAt, arenaChannelUrl, arenaChannelTitle } = lora;
+  const { triggerWord, steps, createdAt, arenaChannelUrl, arenaChannelTitle, trainerModel } = lora;
   const imageUrls = lora.trainingImageUrls;
   const maxThumbnails = 4;
   const visibleImages = imageUrls.slice(0, maxThumbnails);
@@ -85,7 +87,10 @@ export default function LoraRow({ training }: LoraRowProps) {
         <Text variant="body-1" weight="bold">
           {triggerWord}
         </Text>
-        <View direction="row" gap={3}>
+        <View direction="row" gap={3} align="center">
+          <Badge size="small" color="neutral" variant="faded" rounded>
+            {loraModelLabel(trainerModel)}
+          </Badge>
           <Text variant="caption-1" color="neutral-faded">
             {steps} steps
           </Text>

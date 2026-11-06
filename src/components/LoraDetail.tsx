@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Button, Alert } from "reshaped";
+import { View, Text, Button, Alert, Badge } from "reshaped";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import { graphql, useLazyLoadQuery } from "react-relay";
@@ -9,6 +9,7 @@ import SlideshowModal from "./SlideshowModal";
 import ArenaChannelBadge from "./ArenaChannelBadge";
 import TrainingImagesBadge from "./TrainingImagesBadge";
 import LoraUrlCopyBadge from "./LoraUrlCopyBadge";
+import { loraModelLabel } from "@/lib/lora-models";
 import LoraHideToggle from "./LoraHideToggle";
 import LoraImages from "./LoraImages";
 
@@ -38,6 +39,7 @@ export default function LoraDetail({ id }: { id: string }) {
             createdAt
             trainingImageUrls
             loraWeightsUrl
+            trainerModel
             arenaChannelUrl
             arenaChannelTitle
             hidden
@@ -103,6 +105,9 @@ export default function LoraDetail({ id }: { id: string }) {
                 </Text>
               </View>
               <View direction="row" gap={2} wrap>
+                <Badge size="small" color="neutral" variant="faded" rounded>
+                  {loraModelLabel(lora.trainerModel)}
+                </Badge>
                 {lora.arenaChannelUrl && lora.arenaChannelTitle && (
                   <ArenaChannelBadge
                     title={lora.arenaChannelTitle}

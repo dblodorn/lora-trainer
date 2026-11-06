@@ -6,26 +6,18 @@ import type { TrainingPhase } from "./ArenaChannelFetcher";
 interface TrainingProgressProps {
   phase: TrainingPhase;
   logs: { timestamp: string; message: string }[];
-  result: Record<string, unknown> | null;
+  /** The trained weights' URL, once the result has been fetched. */
+  loraUrl: string | null;
+  /** Why fetching the result failed, if it did. */
+  resultError: string | null;
+  /** The model's usual training time, shown when its trainer sends no logs. */
+  typicalMinutes: number;
   error: string | null;
   queuePosition?: number;
   loraId?: string | null;
   onReset: () => void;
   onCancel: () => void;
   isCancelling: boolean;
-}
-
-function getLoraWeightsUrl(
-  result: Record<string, unknown> | null,
-): string | null {
-  if (!result) return null;
-  const loraFile = result.diffusers_lora_file as
-    | { url?: string }
-    | undefined;
-  if (loraFile?.url) return loraFile.url;
-  const configFile = result.config_file as { url?: string } | undefined;
-  if (configFile?.url) return configFile.url;
-  return null;
 }
 
 function phaseLabel(phase: TrainingPhase, queuePosition?: number): string {
@@ -45,13 +37,21 @@ function phaseLabel(phase: TrainingPhase, queuePosition?: number): string {
   }
 }
 
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 const isActive = (phase: TrainingPhase) =>
   phase === "preparing" || phase === "queued" || phase === "training";
 
 export default function TrainingProgress({
   phase,
   logs,
-  result,
+  loraUrl,
+  resultError,
+  typicalMinutes,
   error,
   queuePosition,
   loraId,
@@ -70,6 +70,17 @@ export default function TrainingProgress({
     if (phase === "training") setExpanded(true);
   }
 
+  // Time since the training was started. Some trainers send no logs, so this
+  // is the only sign of life while they run.
+  const active = isActive(phase);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const startedAt = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
   // Auto-scroll the logs container internally (not the window)
   useEffect(() => {
     const container = logsContainerRef.current;
@@ -80,7 +91,6 @@ export default function TrainingProgress({
 
   if (phase === "idle") return null;
 
-  const loraUrl = getLoraWeightsUrl(result);
   const showLogs =
     logs.length > 0 &&
     (phase === "training" || phase === "queued" || phase === "completed");
@@ -140,6 +150,12 @@ export default function TrainingProgress({
               {phaseLabel(phase, queuePosition)}
             </Text>
 
+            {active && (
+              <Text variant="caption-1" color="neutral-faded">
+                {formatElapsed(elapsed)}
+              </Text>
+            )}
+
             {isActive(phase) && (
               <div
                 onClick={(e) => e.stopPropagation()}
@@ -180,6 +196,12 @@ export default function TrainingProgress({
             }}
           >
             <View padding={4} paddingTop={0} gap={3}>
+              {phase === "training" && logs.length === 0 && (
+                <Text variant="body-3" color="neutral-faded">
+                  This model doesn&apos;t report progress. Training usually takes about {typicalMinutes} min.
+                </Text>
+              )}
+
               {/* Error state */}
               {phase === "failed" && (
                 <Alert color="critical" title="Training Failed">
@@ -260,33 +282,15 @@ export default function TrainingProgress({
                     </View>
                   )}
 
-                  {!loraUrl && result && (
-                    <View gap={1}>
-                      <Text
-                        variant="caption-1"
-                        weight="medium"
-                        color="neutral-faded"
-                      >
-                        Raw Result
-                      </Text>
-                      <pre
-                        style={{
-                          fontSize: 11,
-                          background:
-                            "var(--rs-color-background-elevation-raised)",
-                          padding: 8,
-                          borderRadius: 4,
-                          overflow: "auto",
-                          maxHeight: 160,
-                          margin: 0,
-                        }}
-                      >
-                        {JSON.stringify(result, null, 2)}
-                      </pre>
-                      <Button color="neutral" size="small" onClick={onReset}>
-                        Train Another
-                      </Button>
-                    </View>
+                  {!loraUrl && resultError && (
+                    <Alert color="critical" title="Couldn't read the trained weights">
+                      <View gap={2}>
+                        <Text variant="body-2">{resultError}</Text>
+                        <Button color="neutral" size="small" onClick={onReset}>
+                          Train Another
+                        </Button>
+                      </View>
+                    </Alert>
                   )}
                 </View>
               )}
